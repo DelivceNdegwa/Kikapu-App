@@ -4,6 +4,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -21,6 +22,7 @@ import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.ShoppingCart
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -29,6 +31,7 @@ import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffo
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -48,7 +51,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            KikapuTheme(darkTheme = isSystemInDarkTheme()) {
+            KikapuTheme(darkTheme = false) {
                 KikapuApp()
             }
         }
@@ -58,6 +61,21 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun KikapuApp() {
     var currentDestination by rememberSaveable { mutableStateOf(AppDestinations.HOME) }
+
+    // Define standard item colors to remove the default M3 "pill" indicator
+    // Fix: Use 'indicatorColor' instead of 'selectedIndicatorColor'
+    val suiteItemColors = NavigationSuiteDefaults.itemColors(
+        navigationBarItemColors = NavigationBarItemDefaults.colors(
+            selectedIconColor = MaterialTheme.colorScheme.primary,
+            selectedTextColor = MaterialTheme.colorScheme.primary,
+            unselectedIconColor = MaterialTheme.colorScheme.onSurface,
+            unselectedTextColor = MaterialTheme.colorScheme.onSurface,
+            indicatorColor = Color.Transparent, 
+        )
+    )
+
+    // Fix: Hoist remember outside the navigationSuiteItems lambda
+    val addInteractionSource = remember { MutableInteractionSource() }
 
     NavigationSuiteScaffold(
         navigationSuiteItems = {
@@ -69,15 +87,18 @@ fun KikapuApp() {
                             Surface(
                                 shape = CircleShape,
                                 color = MaterialTheme.colorScheme.tertiary,
-                                modifier = Modifier.size(48.dp).retroBorder(
-                                    borderColor = RetroTheme.BorderColor,
-                                    borderWidth = 2.dp,
-                                    shape = CircleShape
-                                ).retroShadow(
-                                    shadowColor = RetroTheme.ShadowColor,
-                                    shape = CircleShape,
-                                    offset = 3.dp
-                                )
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .retroBorder(
+                                        borderColor = RetroTheme.BorderColor,
+                                        borderWidth = 2.dp,
+                                        shape = CircleShape
+                                    )
+                                    .retroShadow(
+                                        shadowColor = RetroTheme.ShadowColor,
+                                        shape = CircleShape,
+                                        offset = 3.dp
+                                    )
                             ) {
                                 Icon(
                                     imageVector = destination.selectedIcon,
@@ -99,15 +120,15 @@ fun KikapuApp() {
                         }
                     },
                     selected = isSelected,
-                    onClick = { currentDestination = destination }
+                    onClick = { currentDestination = destination },
+                    colors = suiteItemColors,
+                    interactionSource = if (destination == AppDestinations.ADD) addInteractionSource else null
                 )
             }
         },
         navigationSuiteColors = NavigationSuiteDefaults.colors(
             navigationBarContainerColor = MaterialTheme.colorScheme.surface,
-            navigationBarContentColor = MaterialTheme.colorScheme.onSurface,
-//            navigationBarSelectedItemIconColor = MaterialTheme.colorScheme.primary,
-//            navigationBarSelectedItemIndicatorColor = Color.Transparent
+            navigationBarContentColor = MaterialTheme.colorScheme.onSurface
         )
     ) {
         Scaffold(
