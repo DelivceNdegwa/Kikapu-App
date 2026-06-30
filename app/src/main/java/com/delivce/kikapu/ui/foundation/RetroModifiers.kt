@@ -36,9 +36,10 @@ fun Modifier.retroShadow(
 fun Modifier.retroFrame(
     borderColor: Color,
     shadowColor: Color,
-    shape: Shape = RoundedCornerShape(RetroDefaults.CornerRadius)
+    shape: Shape = RoundedCornerShape(RetroDefaults.CornerRadius),
+    thickness: Dp = RetroDefaults.BorderWidth
 ): Modifier {
     return this
-        .retroShadow(shadowColor, shape)
-        .retroBorder(borderColor, shape)
+        .retroShadow(shadowColor, shape, thickness)
+        .retroBorder(borderColor, shape, thickness)
 }

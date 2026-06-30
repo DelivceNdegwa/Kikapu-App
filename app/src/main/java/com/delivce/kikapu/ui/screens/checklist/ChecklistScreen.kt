@@ -1,4 +1,4 @@
-package com.delivce.kikapu.ui.screens
+package com.delivce.kikapu.ui.screens.checklist
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -8,8 +8,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 
 @Composable
-fun TripPlanScreen(modifier: Modifier = Modifier) {
+fun ChecklistScreen(modifier: Modifier = Modifier) {
     Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text(text = "Trip Plan Screen")
+        Text(text = "Checklist Screen")
     }
 }
