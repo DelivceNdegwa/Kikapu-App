@@ -1,11 +1,13 @@
 package com.delivce.kikapu.data.repository
+import com.delivce.kikapu.data.mappers.toDomain
+import com.delivce.kikapu.data.mappers.toDto
 
-import com.delivce.kikapu.data.dto.UserDto
 import com.delivce.kikapu.domain.model.AuthResult
 import com.delivce.kikapu.domain.model.User
 import com.delivce.kikapu.domain.repository.AuthRepository
+
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.auth.FirebaseUser
+
 import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.auth.UserProfileChangeRequest
 import kotlinx.coroutines.tasks.await
@@ -58,25 +60,5 @@ class AuthRepositoryImpl @Inject constructor(
 
     override fun logout() {
         firebaseAuth.signOut()
-    }
-
-    // Mapper: Firebase -> DTO
-    private fun FirebaseUser.toDto(): UserDto {
-        return UserDto(
-            uid = uid,
-            email = email,
-            displayName = displayName,
-            photoUrl = photoUrl?.toString()
-        )
-    }
-
-    // Mapper: DTO -> Domain Model
-    private fun UserDto.toDomain(): User {
-        return User(
-            id = uid,
-            email = email,
-            fullName = displayName,
-            profilePictureUrl = photoUrl
-        )
     }
 }
