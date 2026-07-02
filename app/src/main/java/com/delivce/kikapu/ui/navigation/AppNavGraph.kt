@@ -22,7 +22,9 @@ sealed class Screen(val route: String) {
 fun AppNavGraph(
     navController: NavHostController,
     authViewModel: AuthViewModel,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    pendingTripId: String? = null,
+    onDeepLinkHandled: () -> Unit = {}
 ) {
     NavHost(
         navController = navController,
@@ -64,12 +66,16 @@ fun AppNavGraph(
         }
 
         composable(Screen.MainApp.route) {
-            KikapuApp(onLogout = {
-                authViewModel.logout()
-                navController.navigate(Screen.Login.route) {
-                    popUpTo(Screen.MainApp.route) { inclusive = true }
-                }
-            })
+            KikapuApp(
+                onLogout = {
+                    authViewModel.logout()
+                    navController.navigate(Screen.Login.route) {
+                        popUpTo(Screen.MainApp.route) { inclusive = true }
+                    }
+                },
+                pendingTripId = pendingTripId,
+                onDeepLinkHandled = onDeepLinkHandled
+            )
         }
     }
 }

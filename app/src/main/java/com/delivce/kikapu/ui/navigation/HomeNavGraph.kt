@@ -3,12 +3,16 @@ package com.delivce.kikapu.ui.navigation
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import com.delivce.kikapu.ui.screens.checklist.ChecklistScreen
+import androidx.navigation.navArgument
+import com.delivce.kikapu.ui.screens.items.ItemsScreen
 import com.delivce.kikapu.ui.screens.home.HomeScreen
+import com.delivce.kikapu.ui.screens.profile.ProfileScreen
+import com.delivce.kikapu.ui.screens.trips.ActiveTripScreen
+import com.delivce.kikapu.ui.screens.trips.CreateTripScreen
 import com.delivce.kikapu.ui.screens.trips.TripPlanScreen
-import com.delivce.kikapu.ui.ProfileContent
 
 @Composable
 fun HomeNavGraph(
@@ -22,20 +26,45 @@ fun HomeNavGraph(
         modifier = modifier
     ) {
         composable(AppDestinations.HOME.route) {
-            HomeScreen()
+            HomeScreen(
+                onViewAllTrips = { navController.navigate(AppDestinations.TRIPS.route) },
+                onTripClick = { tripId -> navController.navigate(TripRoutes.activeTripRoute(tripId)) }
+            )
         }
         composable(AppDestinations.TRIPS.route) {
-            TripPlanScreen()
+            TripPlanScreen(
+                onCreateTrip = { navController.navigate(TripRoutes.CREATE_TRIP) },
+                onTripClick = { tripId -> navController.navigate(TripRoutes.activeTripRoute(tripId)) }
+            )
         }
-        composable(AppDestinations.CHECKLIST.route) {
-            ChecklistScreen()
+        composable(AppDestinations.ITEMS.route) {
+            ItemsScreen()
         }
         composable(AppDestinations.ME.route) {
-            ProfileContent(onLogout = onLogout)
+            ProfileScreen(onLogout = onLogout)
         }
-        composable(AppDestinations.ADD.route) {
-            // Logic for Add button screen
-            HomeScreen() 
+        composable(TripRoutes.CREATE_TRIP) {
+            CreateTripScreen(
+                onTripCreated = { tripId ->
+                    navController.navigate(TripRoutes.activeTripRoute(tripId)) {
+                        popUpTo(AppDestinations.TRIPS.route)
+                    }
+                },
+                onBack = { navController.popBackStack() }
+            )
+        }
+        composable(
+            route = TripRoutes.ACTIVE_TRIP,
+            arguments = listOf(navArgument("tripId") { type = NavType.StringType })
+        ) {
+            ActiveTripScreen(
+                onBack = { navController.popBackStack() },
+                onTripCompleted = {
+                    navController.navigate(AppDestinations.TRIPS.route) {
+                        popUpTo(AppDestinations.TRIPS.route) { inclusive = true }
+                    }
+                }
+            )
         }
     }
 }

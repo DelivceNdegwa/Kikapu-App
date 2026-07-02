@@ -60,6 +60,7 @@ dependencies {
     // Firebase
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.auth)
+    implementation(libs.firebase.firestore)
     implementation(libs.play.services.auth)
 
     // Lifecycle / ViewModel
@@ -69,6 +70,19 @@ dependencies {
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
     implementation(libs.androidx.hilt.navigation.compose)
+
+    // Room
+    implementation(libs.room.runtime)
+    implementation(libs.room.ktx)
+    ksp(libs.room.compiler)
+
+    // WorkManager + Hilt integration
+    implementation(libs.workmanager)
+    implementation(libs.hilt.work)
+    ksp(libs.hilt.work.compiler)
+
+    // Lottie
+    implementation(libs.lottie.compose)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

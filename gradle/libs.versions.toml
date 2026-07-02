@@ -15,6 +15,9 @@ playServicesAuth = "21.3.0"
 navigation = "2.8.5"
 hilt = "2.53"
 hiltNavigation = "1.2.0"
+room = "2.6.1"
+workManager = "2.9.1"
+lottieCompose = "6.6.2"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -40,8 +43,16 @@ hilt-compiler = { group = "com.google.dagger", name = "hilt-compiler", version.r
 androidx-hilt-navigation-compose = { group = "androidx.hilt", name = "hilt-navigation-compose", version.ref = "hiltNavigation" }
 firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.ref = "firebaseBom" }
 firebase-auth = { group = "com.google.firebase", name = "firebase-auth" }
+firebase-firestore = { group = "com.google.firebase", name = "firebase-firestore" }
 play-services-auth = { group = "com.google.android.gms", name = "play-services-auth", version.ref = "playServicesAuth" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
+room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
+room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
+room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
+workmanager = { group = "androidx.work", name = "work-runtime-ktx", version.ref = "workManager" }
+lottie-compose = { group = "com.airbnb.android", name = "lottie-compose", version.ref = "lottieCompose" }
+hilt-work = { group = "androidx.hilt", name = "hilt-work", version.ref = "hiltNavigation" }
+hilt-work-compiler = { group = "androidx.hilt", name = "hilt-compiler", version.ref = "hiltNavigation" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }
