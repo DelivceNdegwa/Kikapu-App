@@ -24,32 +24,14 @@ private val LightColorScheme = lightColorScheme(
     outline = AppColors.Border
 )
 
-private val DarkColorScheme = darkColorScheme(
-    primary = AppColors.Amber,
-    onPrimary = AppColors.Earth,
-
-    secondary = AppColors.Earth,
-    onSecondary = AppColors.White,
-
-    tertiary = AppColors.Coral,
-    onTertiary = AppColors.White,
-
-    background = AppColors.Earth,
-    onBackground = AppColors.Cream,
-
-    surface = AppColors.DarkSurface,
-    onSurface = AppColors.Cream,
-
-    outline = AppColors.Cream
-)
-
 @Composable
 fun KikapuTheme(
-    darkTheme: Boolean,
+    darkTheme: Boolean = false,
     content: @Composable () -> Unit
 ) {
+    // Forcing LightColorScheme as per user request
     MaterialTheme(
-        colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme,
+        colorScheme = LightColorScheme,
         typography = Typography,
         content = content
     )
