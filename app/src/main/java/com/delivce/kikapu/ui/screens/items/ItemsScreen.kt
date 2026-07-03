@@ -75,7 +75,7 @@ fun ItemsScreen(
         Column(modifier = Modifier.fillMaxSize()) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Text(
-                    text = "► ITEMS",
+                    text = "Items",
                     style = MaterialTheme.typography.headlineLarge,
                     fontWeight = FontWeight.Black,
                     color = RetroTheme.TextColor
@@ -329,7 +329,7 @@ private fun ItemEditorContent(uiState: ItemsUiState, viewModel: ItemsViewModel) 
             contentAlignment = Alignment.Center
         ) {
             Text(
-                text = "► SAVE ITEM",
+                text = "SAVE ITEM",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = Color.White

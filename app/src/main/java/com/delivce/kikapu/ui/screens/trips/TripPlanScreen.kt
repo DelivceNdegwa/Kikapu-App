@@ -62,7 +62,7 @@ fun TripPlanScreen(
         Column(modifier = Modifier.fillMaxSize()) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Text(
-                    text = "► TRIPS",
+                    text = "Trips",
                     style = MaterialTheme.typography.headlineLarge,
                     fontWeight = FontWeight.Black,
                     color = RetroTheme.TextColor

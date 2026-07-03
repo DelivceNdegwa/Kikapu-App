@@ -115,6 +115,7 @@ fun LoginScreen(
         RetroTextField(
             value = loginState.email,
             onValueChange = { viewModel.onLoginEvent(LoginEvent.EmailChanged(it)) },
+            label = "Email",
             placeholder = "youremail@example.com",
             modifier = Modifier.fillMaxWidth()
         )
@@ -124,6 +125,7 @@ fun LoginScreen(
         RetroTextField(
             value = loginState.password,
             onValueChange = { viewModel.onLoginEvent(LoginEvent.PasswordChanged(it)) },
+            label = "Password",
             placeholder = "yourpassword",
             isPassword = true,
             modifier = Modifier.fillMaxWidth()

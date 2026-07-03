@@ -133,6 +133,7 @@ fun SignUpScreen(
         RetroTextField(
             value = signUpState.email,
             onValueChange = { viewModel.onSignUpEvent(SignUpEvent.EmailChanged(it)) },
+            label = "Email",
             placeholder = "youremail@example.com",
             modifier = Modifier.fillMaxWidth()
         )
@@ -142,6 +143,7 @@ fun SignUpScreen(
         RetroTextField(
             value = signUpState.password,
             onValueChange = { viewModel.onSignUpEvent(SignUpEvent.PasswordChanged(it)) },
+            label = "Password",
             placeholder = "yourpassword",
             isPassword = true,
             modifier = Modifier.fillMaxWidth()

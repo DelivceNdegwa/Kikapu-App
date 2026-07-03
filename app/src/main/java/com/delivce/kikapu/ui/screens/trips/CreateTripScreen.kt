@@ -1,13 +1,22 @@
 package com.delivce.kikapu.ui.screens.trips
 
+import android.Manifest
 import android.app.TimePickerDialog
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
+import android.provider.Settings
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -49,6 +58,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.core.app.NotificationManagerCompat
+import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.delivce.kikapu.domain.model.Item
@@ -61,6 +72,7 @@ import com.delivce.kikapu.ui.foundation.RetroTheme
 import com.delivce.kikapu.ui.foundation.retroFrame
 import com.delivce.kikapu.ui.theme.AppColors
 import com.delivce.kikapu.ui.util.formatKes
+import com.delivce.kikapu.ui.util.formatTime
 import kotlinx.coroutines.launch
 import java.util.Calendar
 
@@ -107,7 +119,7 @@ fun CreateTripScreen(
             NavigationButton(isBack = true, onBackClick = onBack)
             Column(modifier = Modifier.padding(start = 12.dp)) {
                 Text(
-                    text = "► NEW TRIP",
+                    text = "NEW TRIP",
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Black,
                     color = RetroTheme.TextColor
@@ -166,7 +178,7 @@ fun CreateTripScreen(
                 )
             } else {
                 StageNavButton(
-                    text = "► CREATE TRIP",
+                    text = "CREATE TRIP",
                     color = AppColors.Coral,
                     textColor = Color.White,
                     isLoading = uiState.isLoading,
@@ -246,7 +258,8 @@ private fun DetailsStage(uiState: CreateTripUiState, viewModel: CreateTripViewMo
             RetroTextField(
                 value = uiState.name,
                 onValueChange = { viewModel.onEvent(CreateTripEvent.NameChanged(it)) },
-                placeholder = "Trip name",
+                label = "Short description",
+                placeholder = "My shopping",
                 modifier = Modifier.fillMaxWidth()
             )
         }
@@ -254,7 +267,8 @@ private fun DetailsStage(uiState: CreateTripUiState, viewModel: CreateTripViewMo
             RetroTextField(
                 value = uiState.budget,
                 onValueChange = { viewModel.onEvent(CreateTripEvent.BudgetChanged(it)) },
-                placeholder = "Budget (KES)",
+                label = "Budget (KES)",
+                placeholder = "1000",
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.fillMaxWidth()
             )
@@ -265,6 +279,17 @@ private fun DetailsStage(uiState: CreateTripUiState, viewModel: CreateTripViewMo
 @Composable
 private fun ScheduleStage(uiState: CreateTripUiState, viewModel: CreateTripViewModel) {
     val context = LocalContext.current
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (!granted) {
+            Toast.makeText(
+                context,
+                "Notifications are off, so the reminder won't show. Enable them in system settings if you'd like a heads-up.",
+                Toast.LENGTH_LONG
+            ).show()
+        }
+    }
     LazyColumn(
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -328,7 +353,36 @@ private fun ScheduleStage(uiState: CreateTripUiState, viewModel: CreateTripViewM
                 )
                 Switch(
                     checked = uiState.reminderEnabled,
-                    onCheckedChange = { viewModel.onEvent(CreateTripEvent.ReminderEnabledChanged(it)) },
+                    onCheckedChange = { enabled ->
+                        viewModel.onEvent(CreateTripEvent.ReminderEnabledChanged(enabled))
+                        if (!enabled || NotificationManagerCompat.from(context).areNotificationsEnabled()) {
+                            return@Switch
+                        }
+                        val canRequestRuntimePermission =
+                            Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                                ContextCompat.checkSelfPermission(
+                                    context,
+                                    Manifest.permission.POST_NOTIFICATIONS
+                                ) != PackageManager.PERMISSION_GRANTED
+                        if (canRequestRuntimePermission) {
+                            // First-time ask (or the user hasn't permanently denied it yet).
+                            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                        } else {
+                            // Either pre-API 33 (no runtime prompt exists) or the permission was
+                            // already denied earlier and the system won't show the dialog again —
+                            // notifications are disabled for the app at the OS level either way,
+                            // so send the user straight to the app's notification settings.
+                            Toast.makeText(
+                                context,
+                                "Notifications are off for Kikapu, so the reminder won't show. Opening notification settings…",
+                                Toast.LENGTH_LONG
+                            ).show()
+                            val settingsIntent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
+                                putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+                            }
+                            context.startActivity(settingsIntent)
+                        }
+                    },
                     colors = SwitchDefaults.colors(checkedTrackColor = AppColors.Coral)
                 )
             }
@@ -594,6 +648,7 @@ private fun CatalogItemRow(item: Item, isSelected: Boolean, onClick: () -> Unit)
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun TimeChipsRow(
     baseDateMillis: Long,
@@ -604,31 +659,42 @@ private fun TimeChipsRow(
     val presets = listOf(9 to 0, 12 to 0, 15 to 0, 18 to 0)
     val presetLabels = listOf("9:00 AM", "12:00 PM", "3:00 PM", "6:00 PM")
     val selectedCal = selectedMillis?.let { Calendar.getInstance().apply { timeInMillis = it } }
+    val isPresetSelected = selectedCal != null && presets.any { (hour, minute) ->
+        selectedCal.get(Calendar.HOUR_OF_DAY) == hour && selectedCal.get(Calendar.MINUTE) == minute
+    }
+    val isCustomSelected = selectedCal != null && !isPresetSelected
 
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        presets.forEachIndexed { index, (hour, minute) ->
-            val isSelected = selectedCal != null &&
-                selectedCal.get(Calendar.HOUR_OF_DAY) == hour &&
-                selectedCal.get(Calendar.MINUTE) == minute
-            TimeChip(
-                label = presetLabels[index],
-                selected = isSelected,
-                onClick = {
-                    val cal = Calendar.getInstance().apply { timeInMillis = baseDateMillis }
-                    cal.set(Calendar.HOUR_OF_DAY, hour)
-                    cal.set(Calendar.MINUTE, minute)
-                    onTimeSelected(cal.timeInMillis)
-                }
-            )
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            presets.forEachIndexed { index, (hour, minute) ->
+                val isSelected = selectedCal != null &&
+                    selectedCal.get(Calendar.HOUR_OF_DAY) == hour &&
+                    selectedCal.get(Calendar.MINUTE) == minute
+                TimeChip(
+                    label = presetLabels[index],
+                    selected = isSelected,
+                    onClick = {
+                        val cal = Calendar.getInstance().apply { timeInMillis = baseDateMillis }
+                        cal.set(Calendar.HOUR_OF_DAY, hour)
+                        cal.set(Calendar.MINUTE, minute)
+                        onTimeSelected(cal.timeInMillis)
+                    }
+                )
+            }
         }
-        TimeChip(label = "CUSTOM…", selected = false, onClick = onCustomClick)
+        TimeChip(
+            label = if (isCustomSelected) "CUSTOM: ${formatTime(selectedMillis!!)}" else "CUSTOM TIME…",
+            selected = isCustomSelected,
+            onClick = onCustomClick,
+            modifier = Modifier.fillMaxWidth()
+        )
     }
 }
 
 @Composable
-private fun TimeChip(label: String, selected: Boolean, onClick: () -> Unit) {
+private fun TimeChip(label: String, selected: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
     Box(
-        modifier = Modifier
+        modifier = modifier
             .retroFrame(
                 borderColor = RetroTheme.BorderColor,
                 shadowColor = RetroTheme.ShadowColor,
@@ -640,7 +706,8 @@ private fun TimeChip(label: String, selected: Boolean, onClick: () -> Unit) {
                 RoundedCornerShape(10.dp)
             )
             .clickable { onClick() }
-            .padding(horizontal = 12.dp, vertical = 8.dp)
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        contentAlignment = Alignment.Center
     ) {
         Text(
             text = label,

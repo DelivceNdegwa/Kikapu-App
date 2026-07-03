@@ -50,20 +50,12 @@ fun ProfileScreen(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
-        Column {
-            Text(
-                text = "► ME",
-                style = MaterialTheme.typography.headlineLarge,
-                fontWeight = FontWeight.Black,
-                color = RetroTheme.TextColor
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = "[ YOUR PROFILE ]",
-                style = MaterialTheme.typography.labelMedium,
-                color = RetroTheme.TextColor.copy(alpha = 0.5f)
-            )
-        }
+        Text(
+            text = "Profile",
+            style = MaterialTheme.typography.headlineLarge,
+            fontWeight = FontWeight.Black,
+            color = RetroTheme.TextColor
+        )
 
         Column(
             modifier = Modifier
@@ -115,21 +107,6 @@ fun ProfileScreen(
                 color = RetroTheme.TextColor.copy(alpha = 0.6f)
             )
 
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Box(
-                modifier = Modifier
-                    .background(AppColors.Teal.copy(alpha = 0.18f), RoundedCornerShape(8.dp))
-                    .padding(horizontal = 12.dp, vertical = 6.dp)
-            ) {
-                Text(
-                    text = "★ KIKAPU MEMBER",
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = AppColors.Earth
-                )
-            }
-
             Spacer(modifier = Modifier.height(20.dp))
             HorizontalDivider(color = RetroTheme.BorderColor.copy(alpha = 0.15f))
             Spacer(modifier = Modifier.height(16.dp))
@@ -157,7 +134,7 @@ fun ProfileScreen(
             contentAlignment = Alignment.Center
         ) {
             Text(
-                text = "► LOG OUT",
+                text = "LOG OUT",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = Color.White

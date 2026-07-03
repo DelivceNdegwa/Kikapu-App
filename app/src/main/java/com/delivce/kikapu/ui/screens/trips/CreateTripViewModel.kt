@@ -51,7 +51,15 @@ class CreateTripViewModel @Inject constructor(
             is CreateTripEvent.BudgetChanged -> _uiState.update { it.copy(budget = event.budget) }
             is CreateTripEvent.DateChanged -> _uiState.update { it.copy(date = event.date) }
             is CreateTripEvent.ReminderEnabledChanged -> _uiState.update {
-                it.copy(reminderEnabled = event.enabled, reminderTime = if (event.enabled) it.reminderTime else null)
+                val reminderTime = when {
+                    !event.enabled -> null
+                    it.reminderTime != null -> it.reminderTime
+                    // No time picked yet — default to the trip's own time so a reminder is
+                    // always scheduled the moment the switch is flipped on, not only once the
+                    // user also taps a preset/custom time chip.
+                    else -> it.date
+                }
+                it.copy(reminderEnabled = event.enabled, reminderTime = reminderTime)
             }
             is CreateTripEvent.ReminderTimeChanged -> _uiState.update { it.copy(reminderTime = event.reminderTime) }
             is CreateTripEvent.ToggleCatalogItem -> toggleCatalogItem(event.item)

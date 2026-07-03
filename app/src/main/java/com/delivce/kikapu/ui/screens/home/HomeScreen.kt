@@ -58,14 +58,14 @@ fun HomeScreen(
         item {
             Column {
                 Text(
-                    text = "► KIKAPU",
+                    text = "Hi ${viewModel.userName}",
                     style = MaterialTheme.typography.headlineLarge,
                     fontWeight = FontWeight.Black,
                     color = RetroTheme.TextColor
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "[ DASHBOARD ]",
+                    text = "Ready to shop?",
                     style = MaterialTheme.typography.labelMedium,
                     color = RetroTheme.TextColor.copy(alpha = 0.5f)
                 )

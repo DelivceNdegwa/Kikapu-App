@@ -4,9 +4,9 @@ import androidx.compose.ui.unit.dp
 
 object RetroDefaults {
 
-    val BorderWidth = 2.dp
+    val BorderWidth = 1.dp
 
-    val ShadowOffset = 4.dp
+    val ShadowOffset = 2.dp
 
     val CornerRadius = 16.dp
 
