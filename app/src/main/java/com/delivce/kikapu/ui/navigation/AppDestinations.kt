@@ -3,10 +3,12 @@ package com.delivce.kikapu.ui.navigation
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Inventory2
+import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Inventory2
+import androidx.compose.material.icons.outlined.LocalFireDepartment
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.ShoppingCart
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -20,5 +22,6 @@ enum class AppDestinations(
     HOME("home_tab", "Home", Icons.Filled.Home, Icons.Outlined.Home),
     TRIPS("trips_tab", "Trips", Icons.Filled.ShoppingCart, Icons.Outlined.ShoppingCart),
     ITEMS("items_tab", "Items", Icons.Filled.Inventory2, Icons.Outlined.Inventory2),
+    PROGRESS("progress_tab", "Progress", Icons.Filled.LocalFireDepartment, Icons.Outlined.LocalFireDepartment),
     ME("profile_tab", "Me", Icons.Filled.Person, Icons.Outlined.Person),
 }

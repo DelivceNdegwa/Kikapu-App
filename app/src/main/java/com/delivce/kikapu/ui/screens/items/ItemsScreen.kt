@@ -19,6 +19,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
@@ -88,7 +90,20 @@ fun ItemsScreen(
                     style = MaterialTheme.typography.labelMedium,
                     color = RetroTheme.TextColor.copy(alpha = 0.5f)
                 )
+                if (uiState.items.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    RetroTextField(
+                        value = uiState.searchQuery,
+                        onValueChange = { viewModel.onEvent(ItemsEvent.SearchQueryChanged(it)) },
+                        label = "Search items",
+                        placeholder = "Eg: milk",
+                        leadingIcon = Icons.Filled.Search,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
             }
+
+            val filteredItems = uiState.items.filter { it.name.contains(uiState.searchQuery, ignoreCase = true) }
 
             when {
                 uiState.isLoading -> {
@@ -101,12 +116,17 @@ fun ItemsScreen(
                         EmptyStateIllustration(caption = "[ NO ITEMS YET — ADD WHAT YOU RESTOCK OFTEN ]")
                     }
                 }
+                filteredItems.isEmpty() -> {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        EmptyStateIllustration(caption = "[ NO ITEMS MATCH YOUR SEARCH ]")
+                    }
+                }
                 else -> {
                     LazyColumn(
                         contentPadding = PaddingValues(16.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        items(uiState.items, key = { it.id }) { item ->
+                        items(filteredItems, key = { it.id }) { item ->
                             val dismissState = rememberSwipeToDismissBoxState(
                                 confirmValueChange = {
                                     if (it == SwipeToDismissBoxValue.EndToStart) {

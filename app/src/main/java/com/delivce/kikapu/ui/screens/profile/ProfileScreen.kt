@@ -42,6 +42,7 @@ fun ProfileScreen(
 ) {
     val user = viewModel.user
     val stats by viewModel.stats.collectAsStateWithLifecycle()
+    val successRateTarget by viewModel.successRateTarget.collectAsStateWithLifecycle()
 
     Column(
         modifier = modifier
@@ -120,6 +121,48 @@ fun ProfileScreen(
             }
         }
 
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .retroFrame(borderColor = RetroTheme.BorderColor, shadowColor = RetroTheme.ShadowColor)
+                .background(RetroTheme.SurfaceColor, RoundedCornerShape(RetroDefaults.CornerRadius))
+                .padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Text(
+                text = "SUCCESS RATE GOAL",
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold,
+                color = RetroTheme.TextColor.copy(alpha = 0.6f)
+            )
+            Text(
+                text = "The share of trips you want to stay within budget for",
+                style = MaterialTheme.typography.labelSmall,
+                color = RetroTheme.TextColor.copy(alpha = 0.5f)
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                GoalStepperButton(
+                    label = "−",
+                    onClick = { viewModel.setSuccessRateTarget(successRateTarget - 5) }
+                )
+                Text(
+                    text = "$successRateTarget%",
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Black,
+                    color = AppColors.Coral
+                )
+                GoalStepperButton(
+                    label = "+",
+                    onClick = { viewModel.setSuccessRateTarget(successRateTarget + 5) }
+                )
+            }
+        }
+
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -140,6 +183,25 @@ fun ProfileScreen(
                 color = Color.White
             )
         }
+    }
+}
+
+@Composable
+private fun GoalStepperButton(label: String, onClick: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .size(44.dp)
+            .retroFrame(borderColor = RetroTheme.BorderColor, shadowColor = RetroTheme.ShadowColor, shape = CircleShape)
+            .background(RetroTheme.BackgroundColor, CircleShape)
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Black,
+            color = RetroTheme.TextColor
+        )
     }
 }
 

@@ -1,4 +1,4 @@
-package com.delivce.kikapu.domain
+package com.delivce.kikapu.domain.usecase
 
 import com.delivce.kikapu.domain.model.Item
 import com.delivce.kikapu.domain.model.isDueForRestock
@@ -26,6 +26,9 @@ enum class BudgetStrategy(val label: String) {
  *
  * [BudgetStrategy.PRIORITIZE_CHEAPNESS] additionally ranks by score-per-currency-unit (value
  * density), which packs in more items for the same budget than ranking on score alone.
+ *
+ * Note: `estimatedPrice` is the total cost of an item's `quantity` (e.g. "5 for 300", not "60
+ * each"), so it's used as-is here rather than multiplied by quantity.
  */
 fun recommendItemsForBudget(
     catalogItems: List<Item>,
@@ -59,10 +62,9 @@ fun recommendItemsForBudget(
     val selected = mutableListOf<Item>()
     var runningTotal = 0.0
     for (item in ranked) {
-        val itemTotal = item.estimatedPrice * item.quantity
-        if (runningTotal + itemTotal <= budget) {
+        if (runningTotal + item.estimatedPrice <= budget) {
             selected += item
-            runningTotal += itemTotal
+            runningTotal += item.estimatedPrice
         }
     }
     return selected

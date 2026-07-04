@@ -6,6 +6,7 @@ data class ItemsUiState(
     val items: List<Item> = emptyList(),
     val isLoading: Boolean = true,
     val errorMessage: String? = null,
+    val searchQuery: String = "",
     val showEditor: Boolean = false,
     val editingItemId: String? = null,
     val editorName: String = "",
@@ -17,6 +18,7 @@ data class ItemsUiState(
 
 sealed class ItemsEvent {
     data class OpenEditor(val item: Item? = null) : ItemsEvent()
+    data class SearchQueryChanged(val query: String) : ItemsEvent()
     object DismissEditor : ItemsEvent()
     data class NameChanged(val name: String) : ItemsEvent()
     data class QuantityChanged(val quantity: String) : ItemsEvent()

@@ -36,6 +36,7 @@ class ItemsViewModel @Inject constructor(
     fun onEvent(event: ItemsEvent) {
         when (event) {
             is ItemsEvent.OpenEditor -> openEditor(event.item)
+            is ItemsEvent.SearchQueryChanged -> _uiState.update { it.copy(searchQuery = event.query) }
             ItemsEvent.DismissEditor -> _uiState.update { it.copy(showEditor = false) }
             is ItemsEvent.NameChanged -> _uiState.update { it.copy(editorName = event.name) }
             is ItemsEvent.QuantityChanged -> _uiState.update { it.copy(editorQuantity = event.quantity) }

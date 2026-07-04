@@ -4,10 +4,13 @@ import android.content.Context
 import androidx.room.Room
 import com.delivce.kikapu.data.local.KikapuDatabase
 import com.delivce.kikapu.data.local.dao.ItemDao
+import com.delivce.kikapu.data.local.dao.SettingsDao
 import com.delivce.kikapu.data.local.dao.TripDao
 import com.delivce.kikapu.data.repository.ItemRepositoryImpl
+import com.delivce.kikapu.data.repository.SettingsRepositoryImpl
 import com.delivce.kikapu.data.repository.TripRepositoryImpl
 import com.delivce.kikapu.domain.repository.ItemRepository
+import com.delivce.kikapu.domain.repository.SettingsRepository
 import com.delivce.kikapu.domain.repository.TripRepository
 import com.google.firebase.firestore.FirebaseFirestore
 import dagger.Binds
@@ -40,6 +43,10 @@ object DatabaseModule {
 
     @Provides
     @Singleton
+    fun provideSettingsDao(database: KikapuDatabase): SettingsDao = database.settingsDao()
+
+    @Provides
+    @Singleton
     fun provideFirebaseFirestore(): FirebaseFirestore = FirebaseFirestore.getInstance()
 }
 
@@ -54,4 +61,8 @@ abstract class TripRepositoryModule {
     @Binds
     @Singleton
     abstract fun bindItemRepository(impl: ItemRepositoryImpl): ItemRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindSettingsRepository(impl: SettingsRepositoryImpl): SettingsRepository
 }

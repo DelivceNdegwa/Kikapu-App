@@ -15,14 +15,23 @@ interface ItemDao {
     @Query("SELECT * FROM items WHERE id = :itemId")
     fun getItemById(itemId: String): Flow<ItemEntity?>
 
+    @Query("SELECT * FROM items WHERE id = :itemId")
+    suspend fun getItemByIdOnce(itemId: String): ItemEntity?
+
     @Upsert
     suspend fun upsertItem(item: ItemEntity)
+
+    @Upsert
+    suspend fun upsertItems(items: List<ItemEntity>)
 
     @Query("DELETE FROM items WHERE id = :itemId")
     suspend fun deleteItem(itemId: String)
 
     @Query("UPDATE items SET lastShoppedAt = :timestamp, updatedAt = :timestamp WHERE id = :itemId")
     suspend fun markShopped(itemId: String, timestamp: Long)
+
+    @Query("UPDATE items SET estimatedPrice = :price, updatedAt = :timestamp WHERE id = :itemId")
+    suspend fun updatePrice(itemId: String, price: Double, timestamp: Long)
 
     @Query(
         """

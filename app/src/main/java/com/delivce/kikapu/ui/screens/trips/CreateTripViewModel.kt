@@ -3,11 +3,11 @@ package com.delivce.kikapu.ui.screens.trips
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.delivce.kikapu.domain.BudgetStrategy
+import com.delivce.kikapu.domain.usecase.BudgetStrategy
 import com.delivce.kikapu.domain.model.Item
 import com.delivce.kikapu.domain.model.ShoppingItem
 import com.delivce.kikapu.domain.model.Trip
-import com.delivce.kikapu.domain.recommendItemsForBudget
+import com.delivce.kikapu.domain.usecase.recommendItemsForBudget
 import com.delivce.kikapu.domain.repository.ItemRepository
 import com.delivce.kikapu.domain.repository.TripRepository
 import com.delivce.kikapu.ui.util.formatKes
@@ -84,7 +84,7 @@ class CreateTripViewModel @Inject constructor(
 
     /** Total cost of everything already on the shopping list, excluding [excludingItemId] if given. */
     private fun currentTotal(state: CreateTripUiState, excludingItemId: String? = null): Double =
-        state.items.filterNot { it.id == excludingItemId }.sumOf { it.estimatedPrice * it.quantity }
+        state.items.filterNot { it.id == excludingItemId }.sumOf { it.estimatedPrice }
 
     private fun toggleCatalogItem(catalogItem: Item) {
         val state = _uiState.value
@@ -96,8 +96,7 @@ class CreateTripViewModel @Inject constructor(
             return
         }
         val budget = state.budget.toDoubleOrNull()
-        val itemTotal = catalogItem.estimatedPrice * catalogItem.quantity
-        val projectedTotal = currentTotal(state) + itemTotal
+        val projectedTotal = currentTotal(state) + catalogItem.estimatedPrice
         if (budget != null && projectedTotal > budget) {
             _uiState.update {
                 it.copy(errorMessage = "Adding \"${catalogItem.name}\" would exceed your budget by ${formatKes(projectedTotal - budget)}")
@@ -192,7 +191,7 @@ class CreateTripViewModel @Inject constructor(
         val state = _uiState.value
         val target = state.items.find { it.id == itemId } ?: return
         val budget = state.budget.toDoubleOrNull()
-        val projectedTotal = currentTotal(state, excludingItemId = itemId) + (price * target.quantity)
+        val projectedTotal = currentTotal(state, excludingItemId = itemId) + price
         if (budget != null && projectedTotal > budget) {
             _uiState.update {
                 it.copy(errorMessage = "That price would exceed your budget by ${formatKes(projectedTotal - budget)}")
@@ -203,6 +202,11 @@ class CreateTripViewModel @Inject constructor(
             it.copy(items = it.items.map { item ->
                 if (item.id == itemId) item.copy(estimatedPrice = price, actualPrice = price) else item
             })
+        }
+        // Correcting a price here should also correct it for next time — keep the catalog item
+        // (if this line came from one) in sync so future trips/budgeting see the real price.
+        target.catalogItemId?.let { catalogItemId ->
+            viewModelScope.launch { itemRepository.updateItemPrice(catalogItemId, price) }
         }
     }
 

@@ -14,5 +14,12 @@ service cloud.firestore {
           && request.auth.uid == get(/databases/$(database)/documents/trips/$(tripId)).data.userId;
       }
     }
+
+    match /catalog_items/{itemId} {
+      allow read, update, delete: if request.auth != null
+        && request.auth.uid == resource.data.userId;
+      allow create: if request.auth != null
+        && request.auth.uid == request.resource.data.userId;
+    }
   }
 }

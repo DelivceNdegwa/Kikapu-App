@@ -57,6 +57,9 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -67,11 +70,12 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.delivce.kikapu.domain.BudgetStrategy
+import com.delivce.kikapu.domain.usecase.BudgetStrategy
 import com.delivce.kikapu.domain.model.Item
 import com.delivce.kikapu.domain.model.overdueDays
 import com.delivce.kikapu.ui.components.AnimatedFillButton
 import com.delivce.kikapu.ui.components.NavigationButton
+import com.delivce.kikapu.ui.components.PriorityDots
 import com.delivce.kikapu.ui.components.PriorityPicker
 import com.delivce.kikapu.ui.components.RetroTextField
 import com.delivce.kikapu.ui.components.SuccessOverlay
@@ -434,7 +438,7 @@ private fun ScheduleStage(uiState: CreateTripUiState, viewModel: CreateTripViewM
 @Composable
 private fun ItemsStage(uiState: CreateTripUiState, viewModel: CreateTripViewModel) {
     val budget = uiState.budget.toDoubleOrNull() ?: 0.0
-    val spent = uiState.items.sumOf { it.estimatedPrice * it.quantity }
+    val spent = uiState.items.sumOf { it.estimatedPrice }
     val remaining = budget - spent
     var editingItemId by remember { mutableStateOf<String?>(null) }
     var priceInput by remember { mutableStateOf("") }
@@ -539,7 +543,8 @@ private fun ItemsStage(uiState: CreateTripUiState, viewModel: CreateTripViewMode
                 RetroTextField(
                     value = uiState.catalogSearchQuery,
                     onValueChange = { viewModel.onEvent(CreateTripEvent.CatalogSearchChanged(it)) },
-                    placeholder = "Search catalog",
+                    label = "Search catalog",
+                    placeholder = "Eg: milk",
                     leadingIcon = Icons.Filled.Search,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -626,26 +631,38 @@ private fun ItemsStage(uiState: CreateTripUiState, viewModel: CreateTripViewMode
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(
-                            text = shoppingItem.name.uppercase(),
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = RetroTheme.TextColor
-                        )
+                        Column {
+                            Text(
+                                text = shoppingItem.name.uppercase(),
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = RetroTheme.TextColor
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            PriorityDots(priority = shoppingItem.priorityIndex)
+                        }
                         if (editingItemId == shoppingItem.id) {
+                            val focusRequester = remember { FocusRequester() }
+                            val commitPrice = {
+                                val price = priceInput.toDoubleOrNull() ?: shoppingItem.estimatedPrice
+                                viewModel.onEvent(CreateTripEvent.UpdateItemPrice(shoppingItem.id, price))
+                                editingItemId = null
+                            }
                             BasicTextField(
                                 value = priceInput,
                                 onValueChange = { priceInput = it },
-                                modifier = Modifier.width(72.dp),
+                                modifier = Modifier
+                                    .width(72.dp)
+                                    .focusRequester(focusRequester)
+                                    // Committing only on the keyboard's Done action meant tapping
+                                    // away to edit another item silently discarded the price.
+                                    .onFocusChanged { focusState -> if (!focusState.isFocused) commitPrice() },
                                 textStyle = MaterialTheme.typography.bodyMedium.copy(color = RetroTheme.TextColor),
                                 singleLine = true,
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
-                                keyboardActions = KeyboardActions(onDone = {
-                                    val price = priceInput.toDoubleOrNull() ?: shoppingItem.estimatedPrice
-                                    viewModel.onEvent(CreateTripEvent.UpdateItemPrice(shoppingItem.id, price))
-                                    editingItemId = null
-                                })
+                                keyboardActions = KeyboardActions(onDone = { commitPrice() })
                             )
+                            LaunchedEffect(Unit) { focusRequester.requestFocus() }
                         } else {
                             Text(
                                 text = formatKes(shoppingItem.estimatedPrice),

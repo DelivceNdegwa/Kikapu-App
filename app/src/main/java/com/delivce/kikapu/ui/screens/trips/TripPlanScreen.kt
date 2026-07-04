@@ -7,14 +7,18 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -31,6 +35,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.delivce.kikapu.domain.model.TripStatus
 import com.delivce.kikapu.ui.components.EmptyStateIllustration
+import com.delivce.kikapu.ui.components.RetroTextField
 import com.delivce.kikapu.ui.components.TripRowCard
 import com.delivce.kikapu.ui.foundation.RetroDefaults
 import com.delivce.kikapu.ui.foundation.RetroTheme
@@ -72,6 +77,15 @@ fun TripPlanScreen(
                     style = MaterialTheme.typography.labelMedium,
                     color = RetroTheme.TextColor.copy(alpha = 0.5f)
                 )
+                Spacer(modifier = Modifier.height(12.dp))
+                RetroTextField(
+                    value = uiState.searchQuery,
+                    onValueChange = { viewModel.onEvent(TripsEvent.SearchQueryChanged(it)) },
+                    label = "Search trips",
+                    placeholder = "Eg: weekly groceries",
+                    leadingIcon = Icons.Filled.Search,
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
 
             LazyRow(
@@ -98,6 +112,13 @@ fun TripPlanScreen(
                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
+                item {
+                    FilterChip(
+                        label = "SMART",
+                        selected = uiState.sortOrder == SortOrder.SMART,
+                        onClick = { viewModel.onEvent(TripsEvent.SortBy(SortOrder.SMART)) }
+                    )
+                }
                 item {
                     FilterChip(
                         label = "DATE ↓",

@@ -1,6 +1,6 @@
 package com.delivce.kikapu.ui.screens.trips
 
-import com.delivce.kikapu.domain.BudgetStrategy
+import com.delivce.kikapu.domain.usecase.BudgetStrategy
 import com.delivce.kikapu.domain.model.Item
 import com.delivce.kikapu.domain.model.ShoppingItem
 
