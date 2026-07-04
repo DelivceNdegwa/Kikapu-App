@@ -9,6 +9,7 @@ data class ActiveTripUiState(
     val isLoading: Boolean = true,
     val errorMessage: String? = null,
     val remainingBudget: Double = 0.0,
+    val spentSoFar: Double = 0.0,
     val newItemName: String = "",
     val newItemPrice: String = ""
 )
@@ -20,5 +21,6 @@ sealed class ActiveTripEvent {
     data class NewItemPriceChanged(val price: String) : ActiveTripEvent()
     object AddOutOfBudgetItem : ActiveTripEvent()
     object CompleteTrip : ActiveTripEvent()
+    object CancelTrip : ActiveTripEvent()
     object ClearError : ActiveTripEvent()
 }

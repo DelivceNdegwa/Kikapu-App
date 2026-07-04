@@ -68,7 +68,7 @@ fun TripPlanScreen(
                     color = RetroTheme.TextColor
                 )
                 Text(
-                    text = "[ ${uiState.filteredTrips.size} RECORDS ]",
+                    text = "${uiState.filteredTrips.size} RECORDS",
                     style = MaterialTheme.typography.labelMedium,
                     color = RetroTheme.TextColor.copy(alpha = 0.5f)
                 )

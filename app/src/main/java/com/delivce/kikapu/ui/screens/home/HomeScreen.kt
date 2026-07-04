@@ -119,7 +119,7 @@ fun HomeScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "[ RECENT TRIPS ]",
+                    text = "RECENT TRIPS",
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
                     color = RetroTheme.TextColor

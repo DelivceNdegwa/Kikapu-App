@@ -10,7 +10,7 @@ import com.delivce.kikapu.data.local.entity.TripEntity
 
 @Database(
     entities = [TripEntity::class, ShoppingItemEntity::class, ItemEntity::class],
-    version = 2,
+    version = 3,
     exportSchema = false
 )
 abstract class KikapuDatabase : RoomDatabase() {

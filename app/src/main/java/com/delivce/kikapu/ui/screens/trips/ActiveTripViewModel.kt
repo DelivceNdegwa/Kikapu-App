@@ -42,8 +42,16 @@ class ActiveTripViewModel @Inject constructor(
                         trip = trip,
                         items = items,
                         isLoading = false,
-                        remainingBudget = (trip?.budget ?: 0.0) - spent
+                        remainingBudget = (trip?.budget ?: 0.0) - spent,
+                        spentSoFar = spent
                     )
+                }
+                // Entering the shopping screen means the trip is underway — flip it from
+                // UPCOMING to ACTIVE so it's distinguishable from trips not yet started if the
+                // user backs out mid-shop (e.g. hopping between stores) and comes back later.
+                // Self-limiting: once this fires, status is no longer UPCOMING on the next emission.
+                if (trip != null && trip.status == TripStatus.UPCOMING) {
+                    repository.updateTrip(trip.copy(status = TripStatus.ACTIVE))
                 }
             }
         }
@@ -57,6 +65,7 @@ class ActiveTripViewModel @Inject constructor(
             is ActiveTripEvent.NewItemPriceChanged -> _uiState.update { it.copy(newItemPrice = event.price) }
             ActiveTripEvent.AddOutOfBudgetItem -> addOutOfBudgetItem()
             ActiveTripEvent.CompleteTrip -> completeTrip()
+            ActiveTripEvent.CancelTrip -> cancelTrip()
             ActiveTripEvent.ClearError -> _uiState.update { it.copy(errorMessage = null) }
         }
     }
@@ -121,6 +130,15 @@ class ActiveTripViewModel @Inject constructor(
                     _uiState.update { it.copy(errorMessage = e.message ?: "Failed to complete trip") }
                 }
             )
+        }
+    }
+
+    private fun cancelTrip() {
+        val trip = _uiState.value.trip ?: return
+        viewModelScope.launch {
+            repository.updateTrip(trip.copy(status = TripStatus.CANCELLED)).onFailure { e ->
+                _uiState.update { it.copy(errorMessage = e.message ?: "Failed to cancel trip") }
+            }
         }
     }
 }

@@ -9,6 +9,8 @@ data class ItemEntity(
     val userId: String,
     val name: String,
     val quantity: Int,
+    val estimatedPrice: Double,
+    val priorityIndex: Int,
     val durationDays: Int,
     val lastShoppedAt: Long?,
     val createdAt: Long,

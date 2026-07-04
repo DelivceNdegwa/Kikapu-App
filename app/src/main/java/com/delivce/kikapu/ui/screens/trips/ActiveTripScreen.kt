@@ -37,6 +37,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.delivce.kikapu.domain.model.TripStatus
+import com.delivce.kikapu.ui.components.AnimatedFillButton
 import com.delivce.kikapu.ui.components.ErrorRed
 import com.delivce.kikapu.ui.components.NavigationButton
 import com.delivce.kikapu.ui.components.RetroChecklistItem
@@ -69,8 +70,10 @@ fun ActiveTripScreen(
     }
 
     LaunchedEffect(uiState.trip?.status) {
-        if (uiState.trip?.status == TripStatus.COMPLETED) {
-            showSuccess = true
+        when (uiState.trip?.status) {
+            TripStatus.COMPLETED -> showSuccess = true
+            TripStatus.CANCELLED -> onTripCompleted()
+            else -> Unit
         }
     }
 
@@ -83,48 +86,27 @@ fun ActiveTripScreen(
             .background(RetroTheme.BackgroundColor)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    NavigationButton(isBack = true, onBackClick = onBack)
-                    Column(modifier = Modifier.padding(start = 12.dp)) {
-                        Text(
-                            text = (trip?.name ?: "").uppercase(),
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Black,
-                            color = RetroTheme.TextColor
-                        )
-                        Text(
-                            text = "[ ACTIVE MODE ]",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = AppColors.Coral
-                        )
-                    }
-                }
-
-                val remainingColor = if (uiState.remainingBudget >= 0) SuccessGreen else ErrorRed
-                Column(horizontalAlignment = Alignment.End) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                NavigationButton(isBack = true, onBackClick = onBack)
+                Column(modifier = Modifier.padding(start = 12.dp)) {
                     Text(
-                        text = formatKes(uiState.remainingBudget),
-                        style = MaterialTheme.typography.titleMedium,
+                        text = (trip?.name ?: "").uppercase(),
+                        style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Black,
-                        color = remainingColor
+                        color = RetroTheme.TextColor
                     )
                     Text(
-                        text = "REMAINING",
+                        text = "[ ACTIVE MODE ]",
                         style = MaterialTheme.typography.labelSmall,
-                        color = RetroTheme.TextColor.copy(alpha = 0.5f)
+                        color = AppColors.Coral
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             val budget = trip?.budget ?: 0.0
-            val spent = (budget - uiState.remainingBudget).coerceAtLeast(0.0)
+            val spent = uiState.spentSoFar
             val progress = if (budget > 0) (spent / budget).coerceIn(0.0, 1.0) else 0.0
             val progressColor = if (progress > 0.8) ErrorRed else AppColors.Coral
 
@@ -140,6 +122,18 @@ fun ActiveTripScreen(
                         .height(8.dp)
                         .background(progressColor, RoundedCornerShape(4.dp))
                 )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            val remainingColor = if (uiState.remainingBudget >= 0) SuccessGreen else ErrorRed
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                BudgetStat(label = "BUDGET", value = formatKes(budget), color = RetroTheme.TextColor)
+                BudgetStat(label = "SPENT", value = formatKes(spent), color = RetroTheme.TextColor)
+                BudgetStat(label = "REMAINING", value = formatKes(uiState.remainingBudget), color = remainingColor)
             }
         }
 
@@ -223,31 +217,61 @@ fun ActiveTripScreen(
             }
         }
 
-        Box(
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp)
-                .height(56.dp)
-                .retroFrame(
-                    borderColor = RetroTheme.BorderColor,
-                    shadowColor = RetroTheme.ShadowColor,
-                    shape = RoundedCornerShape(12.dp)
-                )
-                .background(SuccessGreen, RoundedCornerShape(12.dp))
-                .clickable { viewModel.onEvent(ActiveTripEvent.CompleteTrip) },
-            contentAlignment = Alignment.Center
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Text(
-                text = "✓ COMPLETE TRIP",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = Color.White
+            AnimatedFillButton(
+                text = "CANCEL TRIP",
+                color = ErrorRed,
+                height = 56.dp,
+                modifier = Modifier.weight(1f),
+                onClick = { viewModel.onEvent(ActiveTripEvent.CancelTrip) }
             )
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(56.dp)
+                    .retroFrame(
+                        borderColor = RetroTheme.BorderColor,
+                        shadowColor = RetroTheme.ShadowColor,
+                        shape = RoundedCornerShape(12.dp)
+                    )
+                    .background(SuccessGreen, RoundedCornerShape(12.dp))
+                    .clickable { viewModel.onEvent(ActiveTripEvent.CompleteTrip) },
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "✓ COMPLETE",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
+                )
+            }
         }
     }
 
         if (showSuccess) {
             SuccessOverlay(onFinished = onTripCompleted)
         }
+    }
+}
+
+@Composable
+private fun BudgetStat(label: String, value: String, color: Color) {
+    Column {
+        Text(
+            text = value,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Black,
+            color = color
+        )
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = RetroTheme.TextColor.copy(alpha = 0.5f)
+        )
     }
 }

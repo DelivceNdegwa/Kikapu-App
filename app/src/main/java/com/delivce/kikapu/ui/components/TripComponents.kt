@@ -92,7 +92,7 @@ fun RetroStatCard(
 fun RetroSavingsCard(amount: Double, modifier: Modifier = Modifier) {
     val isSaved = amount >= 0
     val backgroundColor = if (isSaved) SuccessGreen else ErrorRed
-    val label = if (isSaved) "SAVED" else "OVER"
+    val label = if (isSaved) "SAVED" else "OVERSPENT"
     val sign = if (isSaved) "+" else "-"
 
     Box(
@@ -268,7 +268,8 @@ fun RetroChecklistItem(
                     textStyle = MaterialTheme.typography.bodyMedium.copy(color = RetroTheme.TextColor),
                     singleLine = true,
                     keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
-                        keyboardType = androidx.compose.ui.text.input.KeyboardType.Number
+                        keyboardType = androidx.compose.ui.text.input.KeyboardType.Number,
+                        imeAction = androidx.compose.ui.text.input.ImeAction.Done
                     ),
                     keyboardActions = androidx.compose.foundation.text.KeyboardActions(
                         onDone = { onPriceCommit() }

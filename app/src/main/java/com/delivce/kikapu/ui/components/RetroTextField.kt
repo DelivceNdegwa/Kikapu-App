@@ -23,6 +23,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
@@ -38,6 +39,7 @@ fun RetroTextField(
     modifier: Modifier = Modifier,
     label: String = "",
     placeholder: String = "",
+    leadingIcon: ImageVector? = null,
     isPassword: Boolean = false,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
     readOnly: Boolean = false,
@@ -88,6 +90,9 @@ fun RetroTextField(
                         color = RetroTheme.TextColor.copy(alpha = 0.4f)
                     )
                 }
+            } else null,
+            leadingIcon = if (leadingIcon != null) {
+                { Icon(imageVector = leadingIcon, contentDescription = null, tint = RetroTheme.TextColor.copy(alpha = 0.5f)) }
             } else null,
             visualTransformation = if (isPassword && !passwordVisible) PasswordVisualTransformation() else VisualTransformation.None,
             trailingIcon = if (isPassword) {
