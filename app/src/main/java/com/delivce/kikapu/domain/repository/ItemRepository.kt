@@ -10,4 +10,6 @@ interface ItemRepository {
     suspend fun upsertItem(item: Item): Result<Item>
     suspend fun deleteItem(itemId: String): Result<Unit>
     suspend fun markShopped(itemId: String, timestamp: Long = System.currentTimeMillis()): Result<Unit>
+    suspend fun updateItemPrice(itemId: String, price: Double): Result<Unit>
+    suspend fun syncWithFirestore(userId: String)
 }

@@ -36,9 +36,12 @@ class ItemsViewModel @Inject constructor(
     fun onEvent(event: ItemsEvent) {
         when (event) {
             is ItemsEvent.OpenEditor -> openEditor(event.item)
+            is ItemsEvent.SearchQueryChanged -> _uiState.update { it.copy(searchQuery = event.query) }
             ItemsEvent.DismissEditor -> _uiState.update { it.copy(showEditor = false) }
             is ItemsEvent.NameChanged -> _uiState.update { it.copy(editorName = event.name) }
             is ItemsEvent.QuantityChanged -> _uiState.update { it.copy(editorQuantity = event.quantity) }
+            is ItemsEvent.PriceChanged -> _uiState.update { it.copy(editorPrice = event.price) }
+            is ItemsEvent.PriorityChanged -> _uiState.update { it.copy(editorPriority = event.priority) }
             is ItemsEvent.DurationChanged -> _uiState.update { it.copy(editorDurationDays = event.durationDays) }
             ItemsEvent.Save -> save()
             is ItemsEvent.Delete -> delete(event.itemId)
@@ -54,6 +57,8 @@ class ItemsViewModel @Inject constructor(
                 editingItemId = item?.id,
                 editorName = item?.name ?: "",
                 editorQuantity = (item?.quantity ?: 1).toString(),
+                editorPrice = item?.estimatedPrice?.takeIf { price -> price > 0 }?.toString() ?: "",
+                editorPriority = item?.priorityIndex ?: 3,
                 editorDurationDays = (item?.durationDays ?: 30).toString()
             )
         }
@@ -84,6 +89,8 @@ class ItemsViewModel @Inject constructor(
                 userId = userId,
                 name = state.editorName.trim(),
                 quantity = quantity,
+                estimatedPrice = state.editorPrice.toDoubleOrNull() ?: 0.0,
+                priorityIndex = state.editorPriority,
                 durationDays = durationDays,
                 lastShoppedAt = existing?.lastShoppedAt,
                 createdAt = existing?.createdAt ?: System.currentTimeMillis(),

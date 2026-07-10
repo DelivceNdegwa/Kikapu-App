@@ -9,14 +9,16 @@ data class TripsUiState(
     val isLoading: Boolean = true,
     val errorMessage: String? = null,
     val filterStatus: TripStatus? = null,
-    val sortOrder: SortOrder = SortOrder.DATE_DESC
+    val sortOrder: SortOrder = SortOrder.SMART,
+    val searchQuery: String = ""
 )
 
-enum class SortOrder { DATE_ASC, DATE_DESC, BUDGET_HIGH, BUDGET_LOW }
+enum class SortOrder { SMART, DATE_ASC, DATE_DESC, BUDGET_HIGH, BUDGET_LOW }
 
 sealed class TripsEvent {
     data class FilterByStatus(val status: TripStatus?) : TripsEvent()
     data class SortBy(val order: SortOrder) : TripsEvent()
+    data class SearchQueryChanged(val query: String) : TripsEvent()
     data class DeleteTrip(val tripId: String) : TripsEvent()
     object ClearError : TripsEvent()
 }

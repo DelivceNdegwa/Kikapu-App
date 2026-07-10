@@ -10,8 +10,10 @@ import androidx.navigation.navArgument
 import com.delivce.kikapu.ui.screens.items.ItemsScreen
 import com.delivce.kikapu.ui.screens.home.HomeScreen
 import com.delivce.kikapu.ui.screens.profile.ProfileScreen
-import com.delivce.kikapu.ui.screens.trips.ActiveTripScreen
+import com.delivce.kikapu.ui.screens.progress.ProgressScreen
+import com.delivce.kikapu.ui.screens.trips.CompleteTripScreen
 import com.delivce.kikapu.ui.screens.trips.CreateTripScreen
+import com.delivce.kikapu.ui.screens.trips.TripDetailScreen
 import com.delivce.kikapu.ui.screens.trips.TripPlanScreen
 
 @Composable
@@ -40,6 +42,9 @@ fun HomeNavGraph(
         composable(AppDestinations.ITEMS.route) {
             ItemsScreen()
         }
+        composable(AppDestinations.PROGRESS.route) {
+            ProgressScreen()
+        }
         composable(AppDestinations.ME.route) {
             ProfileScreen(onLogout = onLogout)
         }
@@ -57,13 +62,25 @@ fun HomeNavGraph(
             route = TripRoutes.ACTIVE_TRIP,
             arguments = listOf(navArgument("tripId") { type = NavType.StringType })
         ) {
-            ActiveTripScreen(
+            TripDetailScreen(
                 onBack = { navController.popBackStack() },
-                onTripCompleted = {
+                onTripCancelled = {
                     navController.navigate(AppDestinations.TRIPS.route) {
                         popUpTo(AppDestinations.TRIPS.route) { inclusive = true }
                     }
+                },
+                onStartCompleteWizard = { tripId ->
+                    navController.navigate(TripRoutes.completeTripRoute(tripId))
                 }
+            )
+        }
+        composable(
+            route = TripRoutes.COMPLETE_TRIP,
+            arguments = listOf(navArgument("tripId") { type = NavType.StringType })
+        ) {
+            CompleteTripScreen(
+                onBack = { navController.popBackStack() },
+                onCompleted = { navController.popBackStack() }
             )
         }
     }

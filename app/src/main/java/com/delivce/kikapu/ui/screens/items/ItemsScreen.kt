@@ -17,9 +17,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
@@ -43,13 +44,16 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.delivce.kikapu.domain.model.Item
 import com.delivce.kikapu.domain.model.isDueForRestock
-import com.delivce.kikapu.domain.model.restockProgress
 import com.delivce.kikapu.ui.components.EmptyStateIllustration
+import com.delivce.kikapu.ui.components.PriorityDots
+import com.delivce.kikapu.ui.components.PriorityPicker
 import com.delivce.kikapu.ui.components.RetroTextField
 import com.delivce.kikapu.ui.foundation.RetroDefaults
 import com.delivce.kikapu.ui.foundation.RetroTheme
 import com.delivce.kikapu.ui.foundation.retroFrame
 import com.delivce.kikapu.ui.theme.AppColors
+import com.delivce.kikapu.ui.util.formatDate
+import com.delivce.kikapu.ui.util.formatKes
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -75,7 +79,7 @@ fun ItemsScreen(
         Column(modifier = Modifier.fillMaxSize()) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Text(
-                    text = "► ITEMS",
+                    text = "Items",
                     style = MaterialTheme.typography.headlineLarge,
                     fontWeight = FontWeight.Black,
                     color = RetroTheme.TextColor
@@ -86,7 +90,20 @@ fun ItemsScreen(
                     style = MaterialTheme.typography.labelMedium,
                     color = RetroTheme.TextColor.copy(alpha = 0.5f)
                 )
+                if (uiState.items.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    RetroTextField(
+                        value = uiState.searchQuery,
+                        onValueChange = { viewModel.onEvent(ItemsEvent.SearchQueryChanged(it)) },
+                        label = "Search items",
+                        placeholder = "Eg: milk",
+                        leadingIcon = Icons.Filled.Search,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
             }
+
+            val filteredItems = uiState.items.filter { it.name.contains(uiState.searchQuery, ignoreCase = true) }
 
             when {
                 uiState.isLoading -> {
@@ -99,12 +116,17 @@ fun ItemsScreen(
                         EmptyStateIllustration(caption = "[ NO ITEMS YET — ADD WHAT YOU RESTOCK OFTEN ]")
                     }
                 }
+                filteredItems.isEmpty() -> {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        EmptyStateIllustration(caption = "[ NO ITEMS MATCH YOUR SEARCH ]")
+                    }
+                }
                 else -> {
                     LazyColumn(
                         contentPadding = PaddingValues(16.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        items(uiState.items, key = { it.id }) { item ->
+                        items(filteredItems, key = { it.id }) { item ->
                             val dismissState = rememberSwipeToDismissBoxState(
                                 confirmValueChange = {
                                     if (it == SwipeToDismissBoxValue.EndToStart) {
@@ -179,7 +201,6 @@ fun ItemsScreen(
 @Composable
 private fun ItemRowCard(item: Item, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val isDue = item.isDueForRestock()
-    val progress = item.restockProgress()
 
     Box(
         modifier = modifier
@@ -220,33 +241,28 @@ private fun ItemRowCard(item: Item, onClick: () -> Unit, modifier: Modifier = Mo
                     }
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = if (isDue) "⚠ RESTOCK DUE" else "EVERY ${item.durationDays}D",
+                        text = when {
+                            isDue -> "⚠ RESTOCK DUE"
+                            item.lastShoppedAt != null -> "LAST ${formatDate(item.lastShoppedAt)}"
+                            else -> "NOT BOUGHT YET"
+                        },
                         style = MaterialTheme.typography.labelSmall,
                         color = if (isDue) AppColors.ErrorRed else RetroTheme.TextColor.copy(alpha = 0.5f),
                         fontWeight = FontWeight.Bold
                     )
                 }
+                Spacer(modifier = Modifier.height(6.dp))
+                PriorityDots(priority = item.priorityIndex)
             }
 
             Spacer(modifier = Modifier.width(12.dp))
 
-            Box(contentAlignment = Alignment.Center, modifier = Modifier.size(36.dp)) {
-                if (progress != null) {
-                    CircularProgressIndicator(
-                        progress = { progress },
-                        modifier = Modifier.size(36.dp),
-                        color = if (isDue) AppColors.ErrorRed else AppColors.Teal,
-                        trackColor = RetroTheme.BackgroundColor,
-                        strokeWidth = 3.dp
-                    )
-                } else {
-                    Box(
-                        modifier = Modifier
-                            .size(36.dp)
-                            .background(RetroTheme.BackgroundColor, CircleShape)
-                    )
-                }
-            }
+            Text(
+                text = formatKes(item.estimatedPrice),
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold,
+                color = RetroTheme.TextColor.copy(alpha = 0.7f)
+            )
         }
     }
 }
@@ -260,16 +276,19 @@ private fun ItemEditorContent(uiState: ItemsUiState, viewModel: ItemsViewModel) 
             .padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Text(
-            text = if (isEditing) "[ EDIT ITEM ]" else "[ NEW ITEM ]",
-            style = MaterialTheme.typography.titleSmall,
-            fontWeight = FontWeight.Black,
-            color = AppColors.Coral
-        )
+        Row(modifier=Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center){
+            Text(
+                text = if (isEditing) "EDIT ITEM" else "NEW ITEM",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Black,
+                color = AppColors.Coral
+            )
+        }
         RetroTextField(
             value = uiState.editorName,
             onValueChange = { viewModel.onEvent(ItemsEvent.NameChanged(it)) },
-            placeholder = "Item name",
+            label = "Item name",
+            placeholder = "Eg Fruits",
             modifier = Modifier.fillMaxWidth()
         )
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -281,13 +300,32 @@ private fun ItemEditorContent(uiState: ItemsUiState, viewModel: ItemsViewModel) 
                 modifier = Modifier.weight(1f)
             )
             RetroTextField(
-                value = uiState.editorDurationDays,
-                onValueChange = { viewModel.onEvent(ItemsEvent.DurationChanged(it)) },
-                placeholder = "Restock every (days)",
+                value = uiState.editorPrice,
+                onValueChange = { viewModel.onEvent(ItemsEvent.PriceChanged(it)) },
+                placeholder = "Eg 300",
+                label = "Estimated Price",
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.weight(1f)
             )
         }
+        RetroTextField(
+            value = uiState.editorDurationDays,
+            onValueChange = { viewModel.onEvent(ItemsEvent.DurationChanged(it)) },
+            placeholder = "Restock every (days)",
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Text(
+            text = "PRIORITY",
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.Bold,
+            color = RetroTheme.TextColor.copy(alpha = 0.6f)
+        )
+        PriorityPicker(
+            priority = uiState.editorPriority,
+            onPriorityChanged = { viewModel.onEvent(ItemsEvent.PriorityChanged(it)) }
+        )
 
         if (isEditing) {
             Box(
@@ -329,7 +367,7 @@ private fun ItemEditorContent(uiState: ItemsUiState, viewModel: ItemsViewModel) 
             contentAlignment = Alignment.Center
         ) {
             Text(
-                text = "► SAVE ITEM",
+                text = "SAVE ITEM",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = Color.White

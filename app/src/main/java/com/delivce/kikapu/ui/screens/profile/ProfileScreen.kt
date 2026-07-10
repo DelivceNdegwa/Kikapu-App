@@ -42,6 +42,7 @@ fun ProfileScreen(
 ) {
     val user = viewModel.user
     val stats by viewModel.stats.collectAsStateWithLifecycle()
+    val successRateTarget by viewModel.successRateTarget.collectAsStateWithLifecycle()
 
     Column(
         modifier = modifier
@@ -50,20 +51,12 @@ fun ProfileScreen(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
-        Column {
-            Text(
-                text = "► ME",
-                style = MaterialTheme.typography.headlineLarge,
-                fontWeight = FontWeight.Black,
-                color = RetroTheme.TextColor
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = "[ YOUR PROFILE ]",
-                style = MaterialTheme.typography.labelMedium,
-                color = RetroTheme.TextColor.copy(alpha = 0.5f)
-            )
-        }
+        Text(
+            text = "Profile",
+            style = MaterialTheme.typography.headlineLarge,
+            fontWeight = FontWeight.Black,
+            color = RetroTheme.TextColor
+        )
 
         Column(
             modifier = Modifier
@@ -115,21 +108,6 @@ fun ProfileScreen(
                 color = RetroTheme.TextColor.copy(alpha = 0.6f)
             )
 
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Box(
-                modifier = Modifier
-                    .background(AppColors.Teal.copy(alpha = 0.18f), RoundedCornerShape(8.dp))
-                    .padding(horizontal = 12.dp, vertical = 6.dp)
-            ) {
-                Text(
-                    text = "★ KIKAPU MEMBER",
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = AppColors.Earth
-                )
-            }
-
             Spacer(modifier = Modifier.height(20.dp))
             HorizontalDivider(color = RetroTheme.BorderColor.copy(alpha = 0.15f))
             Spacer(modifier = Modifier.height(16.dp))
@@ -140,6 +118,48 @@ fun ProfileScreen(
             ) {
                 ProfileStatChip(label = "UPCOMING", value = stats.upcomingTripsCount.toString())
                 ProfileStatChip(label = "COMPLETED", value = stats.completedTripsCount.toString())
+            }
+        }
+
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .retroFrame(borderColor = RetroTheme.BorderColor, shadowColor = RetroTheme.ShadowColor)
+                .background(RetroTheme.SurfaceColor, RoundedCornerShape(RetroDefaults.CornerRadius))
+                .padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Text(
+                text = "SUCCESS RATE GOAL",
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold,
+                color = RetroTheme.TextColor.copy(alpha = 0.6f)
+            )
+            Text(
+                text = "The share of trips you want to stay within budget for",
+                style = MaterialTheme.typography.labelSmall,
+                color = RetroTheme.TextColor.copy(alpha = 0.5f)
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                GoalStepperButton(
+                    label = "−",
+                    onClick = { viewModel.setSuccessRateTarget(successRateTarget - 5) }
+                )
+                Text(
+                    text = "$successRateTarget%",
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Black,
+                    color = AppColors.Coral
+                )
+                GoalStepperButton(
+                    label = "+",
+                    onClick = { viewModel.setSuccessRateTarget(successRateTarget + 5) }
+                )
             }
         }
 
@@ -157,12 +177,31 @@ fun ProfileScreen(
             contentAlignment = Alignment.Center
         ) {
             Text(
-                text = "► LOG OUT",
+                text = "LOG OUT",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = Color.White
             )
         }
+    }
+}
+
+@Composable
+private fun GoalStepperButton(label: String, onClick: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .size(44.dp)
+            .retroFrame(borderColor = RetroTheme.BorderColor, shadowColor = RetroTheme.ShadowColor, shape = CircleShape)
+            .background(RetroTheme.BackgroundColor, CircleShape)
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Black,
+            color = RetroTheme.TextColor
+        )
     }
 }
 

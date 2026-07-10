@@ -5,6 +5,8 @@ data class Item(
     val userId: String = "",
     val name: String = "",
     val quantity: Int = 1,
+    val estimatedPrice: Double = 0.0,
+    val priorityIndex: Int = 3, // 1-5, higher = more important
     val durationDays: Int = 30,
     val lastShoppedAt: Long? = null,
     val createdAt: Long = System.currentTimeMillis(),
@@ -26,4 +28,10 @@ fun Item.restockProgress(now: Long = System.currentTimeMillis()): Float? {
     val cycle = durationDays * DAY_MILLIS
     if (cycle <= 0) return 1f
     return ((now - last).toFloat() / cycle).coerceIn(0f, 1f)
+}
+
+/** Whole days past the restock deadline; 0 if not yet due or never shopped. */
+fun Item.overdueDays(now: Long = System.currentTimeMillis()): Long {
+    val next = nextRestockAt() ?: return 0L
+    return ((now - next) / DAY_MILLIS).coerceAtLeast(0L)
 }

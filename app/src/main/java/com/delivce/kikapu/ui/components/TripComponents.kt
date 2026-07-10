@@ -19,9 +19,13 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -92,7 +96,7 @@ fun RetroStatCard(
 fun RetroSavingsCard(amount: Double, modifier: Modifier = Modifier) {
     val isSaved = amount >= 0
     val backgroundColor = if (isSaved) SuccessGreen else ErrorRed
-    val label = if (isSaved) "SAVED" else "OVER"
+    val label = if (isSaved) "SAVED" else "OVERSPENT"
     val sign = if (isSaved) "+" else "-"
 
     Box(
@@ -189,6 +193,17 @@ fun TripRowCard(trip: Trip, onClick: () -> Unit, modifier: Modifier = Modifier) 
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 StatusBadge(status = trip.status)
+                if (trip.status == TripStatus.COMPLETED) {
+                    val difference = trip.budget - trip.totalSpent
+                    val isSaved = difference >= 0
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "${if (isSaved) "+" else "-"}${formatKes(kotlin.math.abs(difference))} ${if (isSaved) "SAVED" else "OVER"}",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = if (isSaved) SuccessGreen else ErrorRed
+                    )
+                }
             }
         }
     }
@@ -261,22 +276,34 @@ fun RetroChecklistItem(
             Spacer(modifier = Modifier.width(8.dp))
 
             if (isEditingPrice) {
+                val focusRequester = remember { FocusRequester() }
                 androidx.compose.foundation.text.BasicTextField(
                     value = priceInput,
                     onValueChange = onPriceInputChange,
-                    modifier = Modifier.width(72.dp),
+                    modifier = Modifier
+                        .width(72.dp)
+                        .focusRequester(focusRequester)
+                        // Committing only on the keyboard's Done action meant tapping away to
+                        // edit another item (or anywhere else) silently discarded the typed
+                        // price. Committing on focus loss too makes that impossible to lose.
+                        .onFocusChanged { focusState -> if (!focusState.isFocused) onPriceCommit() },
                     textStyle = MaterialTheme.typography.bodyMedium.copy(color = RetroTheme.TextColor),
                     singleLine = true,
                     keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
-                        keyboardType = androidx.compose.ui.text.input.KeyboardType.Number
+                        keyboardType = androidx.compose.ui.text.input.KeyboardType.Number,
+                        imeAction = androidx.compose.ui.text.input.ImeAction.Done
                     ),
                     keyboardActions = androidx.compose.foundation.text.KeyboardActions(
                         onDone = { onPriceCommit() }
                     )
                 )
+                LaunchedEffect(Unit) { focusRequester.requestFocus() }
             } else {
                 Text(
-                    text = formatKes(if (item.isChecked) item.actualPrice else item.estimatedPrice),
+                    // Always the actual price, not a checked/unchecked-dependent fallback —
+                    // actualPrice is initialized to match estimatedPrice at creation, so this is
+                    // never blank, and an edit here must be visible regardless of checked state.
+                    text = formatKes(item.actualPrice),
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Bold,
                     color = RetroTheme.TextColor,

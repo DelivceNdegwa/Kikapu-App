@@ -21,6 +21,12 @@ class HomeViewModel @Inject constructor(
 
     private val userId = auth.currentUser?.uid ?: ""
 
+    val userName: String = auth.currentUser?.displayName
+        ?.trim()
+        ?.substringBefore(" ")
+        ?.takeIf { it.isNotBlank() }
+        ?: "there"
+
     val summaryStats: StateFlow<SummaryStats> = repository.getSummaryStats(userId)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), SummaryStats())
 

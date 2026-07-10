@@ -67,7 +67,7 @@ class TripReminderWorker @AssistedInject constructor(
         )
 
         val remoteViews = RemoteViews(applicationContext.packageName, R.layout.notification_retro).apply {
-            setTextViewText(R.id.notification_title, "► TRIP REMINDER")
+            setTextViewText(R.id.notification_title, "TRIP REMINDER")
             setTextViewText(
                 R.id.notification_message,
                 "$userName, ready to shop for \"$tripName\"?"

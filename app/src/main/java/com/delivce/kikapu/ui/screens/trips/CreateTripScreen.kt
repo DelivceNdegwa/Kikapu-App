@@ -1,13 +1,22 @@
 package com.delivce.kikapu.ui.screens.trips
 
+import android.Manifest
 import android.app.TimePickerDialog
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
+import android.provider.Settings
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -22,9 +31,13 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -44,15 +57,26 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.core.app.NotificationManagerCompat
+import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.delivce.kikapu.domain.usecase.BudgetStrategy
 import com.delivce.kikapu.domain.model.Item
+import com.delivce.kikapu.domain.model.overdueDays
+import com.delivce.kikapu.ui.components.AnimatedFillButton
 import com.delivce.kikapu.ui.components.NavigationButton
+import com.delivce.kikapu.ui.components.PriorityDots
+import com.delivce.kikapu.ui.components.PriorityPicker
 import com.delivce.kikapu.ui.components.RetroTextField
 import com.delivce.kikapu.ui.components.SuccessOverlay
 import com.delivce.kikapu.ui.components.WeekStripCalendar
@@ -61,6 +85,7 @@ import com.delivce.kikapu.ui.foundation.RetroTheme
 import com.delivce.kikapu.ui.foundation.retroFrame
 import com.delivce.kikapu.ui.theme.AppColors
 import com.delivce.kikapu.ui.util.formatKes
+import com.delivce.kikapu.ui.util.formatTime
 import kotlinx.coroutines.launch
 import java.util.Calendar
 
@@ -107,7 +132,7 @@ fun CreateTripScreen(
             NavigationButton(isBack = true, onBackClick = onBack)
             Column(modifier = Modifier.padding(start = 12.dp)) {
                 Text(
-                    text = "► NEW TRIP",
+                    text = "NEW TRIP",
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Black,
                     color = RetroTheme.TextColor
@@ -158,15 +183,22 @@ fun CreateTripScreen(
                     text = "NEXT →",
                     color = AppColors.Coral,
                     textColor = Color.White,
-                    enabled = pagerState.currentPage != 0 || detailsValid,
                     modifier = Modifier.weight(1f),
                     onClick = {
-                        coroutineScope.launch { pagerState.animateScrollToPage(pagerState.currentPage + 1) }
+                        if (pagerState.currentPage == 0 && !detailsValid) {
+                            Toast.makeText(
+                                context,
+                                "Please fill in the trip name and a valid budget before continuing",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        } else {
+                            coroutineScope.launch { pagerState.animateScrollToPage(pagerState.currentPage + 1) }
+                        }
                     }
                 )
             } else {
                 StageNavButton(
-                    text = "► CREATE TRIP",
+                    text = "CREATE TRIP",
                     color = AppColors.Coral,
                     textColor = Color.White,
                     isLoading = uiState.isLoading,
@@ -246,7 +278,8 @@ private fun DetailsStage(uiState: CreateTripUiState, viewModel: CreateTripViewMo
             RetroTextField(
                 value = uiState.name,
                 onValueChange = { viewModel.onEvent(CreateTripEvent.NameChanged(it)) },
-                placeholder = "Trip name",
+                label = "Short description",
+                placeholder = "My shopping",
                 modifier = Modifier.fillMaxWidth()
             )
         }
@@ -254,7 +287,8 @@ private fun DetailsStage(uiState: CreateTripUiState, viewModel: CreateTripViewMo
             RetroTextField(
                 value = uiState.budget,
                 onValueChange = { viewModel.onEvent(CreateTripEvent.BudgetChanged(it)) },
-                placeholder = "Budget (KES)",
+                label = "Budget (KES)",
+                placeholder = "1000",
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.fillMaxWidth()
             )
@@ -265,6 +299,17 @@ private fun DetailsStage(uiState: CreateTripUiState, viewModel: CreateTripViewMo
 @Composable
 private fun ScheduleStage(uiState: CreateTripUiState, viewModel: CreateTripViewModel) {
     val context = LocalContext.current
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (!granted) {
+            Toast.makeText(
+                context,
+                "Notifications are off, so the reminder won't show. Enable them in system settings if you'd like a heads-up.",
+                Toast.LENGTH_LONG
+            ).show()
+        }
+    }
     LazyColumn(
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -328,7 +373,36 @@ private fun ScheduleStage(uiState: CreateTripUiState, viewModel: CreateTripViewM
                 )
                 Switch(
                     checked = uiState.reminderEnabled,
-                    onCheckedChange = { viewModel.onEvent(CreateTripEvent.ReminderEnabledChanged(it)) },
+                    onCheckedChange = { enabled ->
+                        viewModel.onEvent(CreateTripEvent.ReminderEnabledChanged(enabled))
+                        if (!enabled || NotificationManagerCompat.from(context).areNotificationsEnabled()) {
+                            return@Switch
+                        }
+                        val canRequestRuntimePermission =
+                            Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                                ContextCompat.checkSelfPermission(
+                                    context,
+                                    Manifest.permission.POST_NOTIFICATIONS
+                                ) != PackageManager.PERMISSION_GRANTED
+                        if (canRequestRuntimePermission) {
+                            // First-time ask (or the user hasn't permanently denied it yet).
+                            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                        } else {
+                            // Either pre-API 33 (no runtime prompt exists) or the permission was
+                            // already denied earlier and the system won't show the dialog again —
+                            // notifications are disabled for the app at the OS level either way,
+                            // so send the user straight to the app's notification settings.
+                            Toast.makeText(
+                                context,
+                                "Notifications are off for Kikapu, so the reminder won't show. Opening notification settings…",
+                                Toast.LENGTH_LONG
+                            ).show()
+                            val settingsIntent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
+                                putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+                            }
+                            context.startActivity(settingsIntent)
+                        }
+                    },
                     colors = SwitchDefaults.colors(checkedTrackColor = AppColors.Coral)
                 )
             }
@@ -363,13 +437,100 @@ private fun ScheduleStage(uiState: CreateTripUiState, viewModel: CreateTripViewM
 
 @Composable
 private fun ItemsStage(uiState: CreateTripUiState, viewModel: CreateTripViewModel) {
+    val budget = uiState.budget.toDoubleOrNull() ?: 0.0
+    val spent = uiState.items.sumOf { it.estimatedPrice }
+    val remaining = budget - spent
+    var editingItemId by remember { mutableStateOf<String?>(null) }
+    var priceInput by remember { mutableStateOf("") }
+
     LazyColumn(
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         item { SectionHeader("03. ITEMS") }
 
+        item {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                BudgetStatText(label = "BUDGET", value = formatKes(budget))
+                BudgetStatText(label = "PLANNED", value = formatKes(spent))
+                BudgetStatText(
+                    label = "LEFT",
+                    value = formatKes(remaining),
+                    color = if (remaining >= 0) RetroTheme.TextColor else AppColors.ErrorRed
+                )
+            }
+        }
+
         if (uiState.catalogItems.isNotEmpty()) {
+            item {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .retroFrame(borderColor = RetroTheme.BorderColor, shadowColor = RetroTheme.ShadowColor)
+                        .background(RetroTheme.SurfaceColor, RoundedCornerShape(RetroDefaults.CornerRadius))
+                        .padding(14.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Text(
+                        text = "SMART FILL",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = AppColors.Coral
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        BudgetStrategy.entries.forEach { strategy ->
+                            SortChip(
+                                label = strategy.label,
+                                selected = uiState.budgetStrategy == strategy,
+                                onClick = { viewModel.onEvent(CreateTripEvent.StrategyChanged(strategy)) }
+                            )
+                        }
+                    }
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.clickable {
+                            viewModel.onEvent(CreateTripEvent.IncludeNonDueItemsChanged(!uiState.includeNonDueItems))
+                        }
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(18.dp)
+                                .retroFrame(
+                                    borderColor = RetroTheme.BorderColor,
+                                    shadowColor = RetroTheme.ShadowColor,
+                                    shape = RoundedCornerShape(4.dp),
+                                    thickness = 1.5.dp
+                                )
+                                .background(
+                                    if (uiState.includeNonDueItems) AppColors.Coral else RetroTheme.BackgroundColor,
+                                    RoundedCornerShape(4.dp)
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (uiState.includeNonDueItems) {
+                                Text(text = "✓", color = Color.White, style = MaterialTheme.typography.labelSmall)
+                            }
+                        }
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "INCLUDE NON-DUE ITEMS",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = RetroTheme.TextColor.copy(alpha = 0.6f)
+                        )
+                    }
+                    AnimatedFillButton(
+                        text = "AUTO-FILL FROM BUDGET",
+                        icon = Icons.Filled.SmartToy,
+                        height = 40.dp,
+                        onClick = { viewModel.onEvent(CreateTripEvent.AutoFillFromBudget) }
+                    )
+                }
+            }
+
             item {
                 Text(
                     text = "FROM YOUR CATALOG",
@@ -378,7 +539,20 @@ private fun ItemsStage(uiState: CreateTripUiState, viewModel: CreateTripViewMode
                     color = RetroTheme.TextColor.copy(alpha = 0.6f)
                 )
             }
-            items(uiState.catalogItems, key = { "catalog_${it.id}" }) { catalogItem ->
+            item {
+                RetroTextField(
+                    value = uiState.catalogSearchQuery,
+                    onValueChange = { viewModel.onEvent(CreateTripEvent.CatalogSearchChanged(it)) },
+                    label = "Search catalog",
+                    placeholder = "Eg: milk",
+                    leadingIcon = Icons.Filled.Search,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+            val filteredCatalog = uiState.catalogItems
+                .filter { it.name.contains(uiState.catalogSearchQuery, ignoreCase = true) }
+                .sortedByDescending { it.overdueDays() }
+            items(filteredCatalog, key = { "catalog_${it.id}" }) { catalogItem ->
                 val isSelected = uiState.items.any { it.catalogItemId == catalogItem.id }
                 CatalogItemRow(
                     item = catalogItem,
@@ -457,17 +631,49 @@ private fun ItemsStage(uiState: CreateTripUiState, viewModel: CreateTripViewMode
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(
-                            text = shoppingItem.name.uppercase(),
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = RetroTheme.TextColor
-                        )
-                        Text(
-                            text = formatKes(shoppingItem.estimatedPrice),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = RetroTheme.TextColor.copy(alpha = 0.7f)
-                        )
+                        Column {
+                            Text(
+                                text = shoppingItem.name.uppercase(),
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = RetroTheme.TextColor
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            PriorityDots(priority = shoppingItem.priorityIndex)
+                        }
+                        if (editingItemId == shoppingItem.id) {
+                            val focusRequester = remember { FocusRequester() }
+                            val commitPrice = {
+                                val price = priceInput.toDoubleOrNull() ?: shoppingItem.estimatedPrice
+                                viewModel.onEvent(CreateTripEvent.UpdateItemPrice(shoppingItem.id, price))
+                                editingItemId = null
+                            }
+                            BasicTextField(
+                                value = priceInput,
+                                onValueChange = { priceInput = it },
+                                modifier = Modifier
+                                    .width(72.dp)
+                                    .focusRequester(focusRequester)
+                                    // Committing only on the keyboard's Done action meant tapping
+                                    // away to edit another item silently discarded the price.
+                                    .onFocusChanged { focusState -> if (!focusState.isFocused) commitPrice() },
+                                textStyle = MaterialTheme.typography.bodyMedium.copy(color = RetroTheme.TextColor),
+                                singleLine = true,
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
+                                keyboardActions = KeyboardActions(onDone = { commitPrice() })
+                            )
+                            LaunchedEffect(Unit) { focusRequester.requestFocus() }
+                        } else {
+                            Text(
+                                text = formatKes(shoppingItem.estimatedPrice),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = RetroTheme.TextColor.copy(alpha = 0.7f),
+                                modifier = Modifier.clickable {
+                                    editingItemId = shoppingItem.id
+                                    priceInput = shoppingItem.estimatedPrice.toString()
+                                }
+                            )
+                        }
                     }
                 }
             }
@@ -498,55 +704,15 @@ private fun ItemsStage(uiState: CreateTripUiState, viewModel: CreateTripViewMode
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     modifier = Modifier.fillMaxWidth()
                 )
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    for (priority in 1..5) {
-                        Box(
-                            modifier = Modifier
-                                .size(28.dp)
-                                .retroFrame(
-                                    borderColor = RetroTheme.BorderColor,
-                                    shadowColor = RetroTheme.ShadowColor,
-                                    shape = RoundedCornerShape(6.dp),
-                                    thickness = 1.5.dp
-                                )
-                                .background(
-                                    if (priority <= uiState.newItemPriority) AppColors.Coral else RetroTheme.BackgroundColor,
-                                    RoundedCornerShape(6.dp)
-                                )
-                                .clickable {
-                                    viewModel.onEvent(CreateTripEvent.NewItemPriorityChanged(priority))
-                                },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = priority.toString(),
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = if (priority <= uiState.newItemPriority) Color.White else RetroTheme.TextColor
-                            )
-                        }
-                    }
-                }
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(44.dp)
-                        .retroFrame(
-                            borderColor = RetroTheme.BorderColor,
-                            shadowColor = RetroTheme.ShadowColor,
-                            shape = RoundedCornerShape(10.dp)
-                        )
-                        .background(RetroTheme.TextColor, RoundedCornerShape(10.dp))
-                        .clickable { viewModel.onEvent(CreateTripEvent.AddItem) },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "+ ADD TO LIST",
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = RetroTheme.BackgroundColor
-                    )
-                }
+                PriorityPicker(
+                    priority = uiState.newItemPriority,
+                    onPriorityChanged = { viewModel.onEvent(CreateTripEvent.NewItemPriorityChanged(it)) }
+                )
+                AnimatedFillButton(
+                    text = "+ ADD TO LIST",
+                    height = 44.dp,
+                    onClick = { viewModel.onEvent(CreateTripEvent.AddItem) }
+                )
             }
         }
     }
@@ -582,7 +748,7 @@ private fun CatalogItemRow(item: Item, isSelected: Boolean, onClick: () -> Unit)
                     color = if (isSelected) Color.White else RetroTheme.TextColor
                 )
                 Text(
-                    text = "QTY ×${item.quantity}",
+                    text = "QTY ×${item.quantity} · ${formatKes(item.estimatedPrice)}",
                     style = MaterialTheme.typography.labelSmall,
                     color = if (isSelected) Color.White.copy(alpha = 0.85f) else RetroTheme.TextColor.copy(alpha = 0.5f)
                 )
@@ -594,6 +760,7 @@ private fun CatalogItemRow(item: Item, isSelected: Boolean, onClick: () -> Unit)
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun TimeChipsRow(
     baseDateMillis: Long,
@@ -604,31 +771,42 @@ private fun TimeChipsRow(
     val presets = listOf(9 to 0, 12 to 0, 15 to 0, 18 to 0)
     val presetLabels = listOf("9:00 AM", "12:00 PM", "3:00 PM", "6:00 PM")
     val selectedCal = selectedMillis?.let { Calendar.getInstance().apply { timeInMillis = it } }
+    val isPresetSelected = selectedCal != null && presets.any { (hour, minute) ->
+        selectedCal.get(Calendar.HOUR_OF_DAY) == hour && selectedCal.get(Calendar.MINUTE) == minute
+    }
+    val isCustomSelected = selectedCal != null && !isPresetSelected
 
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        presets.forEachIndexed { index, (hour, minute) ->
-            val isSelected = selectedCal != null &&
-                selectedCal.get(Calendar.HOUR_OF_DAY) == hour &&
-                selectedCal.get(Calendar.MINUTE) == minute
-            TimeChip(
-                label = presetLabels[index],
-                selected = isSelected,
-                onClick = {
-                    val cal = Calendar.getInstance().apply { timeInMillis = baseDateMillis }
-                    cal.set(Calendar.HOUR_OF_DAY, hour)
-                    cal.set(Calendar.MINUTE, minute)
-                    onTimeSelected(cal.timeInMillis)
-                }
-            )
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            presets.forEachIndexed { index, (hour, minute) ->
+                val isSelected = selectedCal != null &&
+                    selectedCal.get(Calendar.HOUR_OF_DAY) == hour &&
+                    selectedCal.get(Calendar.MINUTE) == minute
+                TimeChip(
+                    label = presetLabels[index],
+                    selected = isSelected,
+                    onClick = {
+                        val cal = Calendar.getInstance().apply { timeInMillis = baseDateMillis }
+                        cal.set(Calendar.HOUR_OF_DAY, hour)
+                        cal.set(Calendar.MINUTE, minute)
+                        onTimeSelected(cal.timeInMillis)
+                    }
+                )
+            }
         }
-        TimeChip(label = "CUSTOM…", selected = false, onClick = onCustomClick)
+        TimeChip(
+            label = if (isCustomSelected) "CUSTOM: ${formatTime(selectedMillis!!)}" else "CUSTOM TIME…",
+            selected = isCustomSelected,
+            onClick = onCustomClick,
+            modifier = Modifier.fillMaxWidth()
+        )
     }
 }
 
 @Composable
-private fun TimeChip(label: String, selected: Boolean, onClick: () -> Unit) {
+private fun TimeChip(label: String, selected: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
     Box(
-        modifier = Modifier
+        modifier = modifier
             .retroFrame(
                 borderColor = RetroTheme.BorderColor,
                 shadowColor = RetroTheme.ShadowColor,
@@ -640,13 +818,32 @@ private fun TimeChip(label: String, selected: Boolean, onClick: () -> Unit) {
                 RoundedCornerShape(10.dp)
             )
             .clickable { onClick() }
-            .padding(horizontal = 12.dp, vertical = 8.dp)
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        contentAlignment = Alignment.Center
     ) {
         Text(
             text = label,
             style = MaterialTheme.typography.labelSmall,
             fontWeight = FontWeight.Bold,
             color = if (selected) Color.White else RetroTheme.TextColor
+        )
+    }
+}
+
+@Composable
+private fun BudgetStatText(label: String, value: String, color: Color = RetroTheme.TextColor) {
+    Column {
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.Black,
+            color = color
+        )
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.Bold,
+            color = RetroTheme.TextColor.copy(alpha = 0.5f)
         )
     }
 }

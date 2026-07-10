@@ -3,11 +3,14 @@ package com.delivce.kikapu.ui.screens.trips
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.delivce.kikapu.domain.usecase.BudgetStrategy
 import com.delivce.kikapu.domain.model.Item
 import com.delivce.kikapu.domain.model.ShoppingItem
 import com.delivce.kikapu.domain.model.Trip
+import com.delivce.kikapu.domain.usecase.recommendItemsForBudget
 import com.delivce.kikapu.domain.repository.ItemRepository
 import com.delivce.kikapu.domain.repository.TripRepository
+import com.delivce.kikapu.ui.util.formatKes
 import com.delivce.kikapu.worker.TripReminderWorker
 import com.google.firebase.auth.FirebaseAuth
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -51,20 +54,37 @@ class CreateTripViewModel @Inject constructor(
             is CreateTripEvent.BudgetChanged -> _uiState.update { it.copy(budget = event.budget) }
             is CreateTripEvent.DateChanged -> _uiState.update { it.copy(date = event.date) }
             is CreateTripEvent.ReminderEnabledChanged -> _uiState.update {
-                it.copy(reminderEnabled = event.enabled, reminderTime = if (event.enabled) it.reminderTime else null)
+                val reminderTime = when {
+                    !event.enabled -> null
+                    it.reminderTime != null -> it.reminderTime
+                    // No time picked yet — default to the trip's own time so a reminder is
+                    // always scheduled the moment the switch is flipped on, not only once the
+                    // user also taps a preset/custom time chip.
+                    else -> it.date
+                }
+                it.copy(reminderEnabled = event.enabled, reminderTime = reminderTime)
             }
             is CreateTripEvent.ReminderTimeChanged -> _uiState.update { it.copy(reminderTime = event.reminderTime) }
             is CreateTripEvent.ToggleCatalogItem -> toggleCatalogItem(event.item)
+            is CreateTripEvent.CatalogSearchChanged -> _uiState.update { it.copy(catalogSearchQuery = event.query) }
+            is CreateTripEvent.StrategyChanged -> _uiState.update { it.copy(budgetStrategy = event.strategy) }
+            is CreateTripEvent.IncludeNonDueItemsChanged -> _uiState.update { it.copy(includeNonDueItems = event.include) }
+            CreateTripEvent.AutoFillFromBudget -> autoFillFromBudget()
             is CreateTripEvent.NewItemNameChanged -> _uiState.update { it.copy(newItemName = event.name) }
             is CreateTripEvent.NewItemPriceChanged -> _uiState.update { it.copy(newItemPrice = event.price) }
             is CreateTripEvent.NewItemPriorityChanged -> _uiState.update { it.copy(newItemPriority = event.priority) }
             CreateTripEvent.AddItem -> addItem()
             is CreateTripEvent.RemoveItem -> removeItem(event.itemId)
+            is CreateTripEvent.UpdateItemPrice -> updateItemPrice(event.itemId, event.price)
             is CreateTripEvent.SortItems -> sortItems(event.order)
             CreateTripEvent.CreateTrip -> createTrip()
             CreateTripEvent.ClearError -> _uiState.update { it.copy(errorMessage = null) }
         }
     }
+
+    /** Total cost of everything already on the shopping list, excluding [excludingItemId] if given. */
+    private fun currentTotal(state: CreateTripUiState, excludingItemId: String? = null): Double =
+        state.items.filterNot { it.id == excludingItemId }.sumOf { it.estimatedPrice }
 
     private fun toggleCatalogItem(catalogItem: Item) {
         val state = _uiState.value
@@ -73,26 +93,83 @@ class CreateTripViewModel @Inject constructor(
             _uiState.update {
                 it.copy(items = it.items.filterNot { item -> item.catalogItemId == catalogItem.id })
             }
-        } else {
-            val item = ShoppingItem(
+            return
+        }
+        val budget = state.budget.toDoubleOrNull()
+        val projectedTotal = currentTotal(state) + catalogItem.estimatedPrice
+        if (budget != null && projectedTotal > budget) {
+            _uiState.update {
+                it.copy(errorMessage = "Adding \"${catalogItem.name}\" would exceed your budget by ${formatKes(projectedTotal - budget)}")
+            }
+            return
+        }
+        val item = ShoppingItem(
+            id = UUID.randomUUID().toString(),
+            name = catalogItem.name,
+            quantity = catalogItem.quantity,
+            estimatedPrice = catalogItem.estimatedPrice,
+            actualPrice = catalogItem.estimatedPrice,
+            priorityIndex = catalogItem.priorityIndex,
+            catalogItemId = catalogItem.id
+        )
+        _uiState.update { it.copy(items = sortItemsList(it.items + item, it.itemSortOrder)) }
+    }
+
+    private fun autoFillFromBudget() {
+        val state = _uiState.value
+        val budget = state.budget.toDoubleOrNull()
+        if (budget == null) {
+            _uiState.update { it.copy(errorMessage = "Enter a valid budget first") }
+            return
+        }
+        val remaining = budget - currentTotal(state)
+        if (remaining <= 0) {
+            _uiState.update { it.copy(errorMessage = "No budget left to auto-fill") }
+            return
+        }
+        val alreadyIncluded = state.items.mapNotNull { it.catalogItemId }.toSet()
+        val candidates = state.catalogItems.filterNot { it.id in alreadyIncluded }
+        val recommended = recommendItemsForBudget(
+            candidates,
+            remaining,
+            state.budgetStrategy,
+            includeNonDue = state.includeNonDueItems
+        )
+        if (recommended.isEmpty()) {
+            _uiState.update { it.copy(errorMessage = "No catalog items are due for restock within your remaining budget") }
+            return
+        }
+        val newItems = recommended.map { catalogItem ->
+            ShoppingItem(
                 id = UUID.randomUUID().toString(),
                 name = catalogItem.name,
                 quantity = catalogItem.quantity,
-                priorityIndex = 3,
+                estimatedPrice = catalogItem.estimatedPrice,
+                actualPrice = catalogItem.estimatedPrice,
+                priorityIndex = catalogItem.priorityIndex,
                 catalogItemId = catalogItem.id
             )
-            _uiState.update { it.copy(items = sortItemsList(it.items + item, it.itemSortOrder)) }
         }
+        _uiState.update { it.copy(items = sortItemsList(it.items + newItems, it.itemSortOrder)) }
     }
 
     private fun addItem() {
         val state = _uiState.value
         if (state.newItemName.isBlank()) return
         val price = state.newItemPrice.toDoubleOrNull() ?: 0.0
+        val budget = state.budget.toDoubleOrNull()
+        val projectedTotal = currentTotal(state) + price
+        if (budget != null && projectedTotal > budget) {
+            _uiState.update {
+                it.copy(errorMessage = "Adding \"${state.newItemName.trim()}\" would exceed your budget by ${formatKes(projectedTotal - budget)}")
+            }
+            return
+        }
         val item = ShoppingItem(
             id = UUID.randomUUID().toString(),
             name = state.newItemName.trim(),
             estimatedPrice = price,
+            actualPrice = price,
             priorityIndex = state.newItemPriority,
             isCustom = true
         )
@@ -108,6 +185,29 @@ class CreateTripViewModel @Inject constructor(
 
     private fun removeItem(itemId: String) {
         _uiState.update { it.copy(items = it.items.filterNot { item -> item.id == itemId }) }
+    }
+
+    private fun updateItemPrice(itemId: String, price: Double) {
+        val state = _uiState.value
+        val target = state.items.find { it.id == itemId } ?: return
+        val budget = state.budget.toDoubleOrNull()
+        val projectedTotal = currentTotal(state, excludingItemId = itemId) + price
+        if (budget != null && projectedTotal > budget) {
+            _uiState.update {
+                it.copy(errorMessage = "That price would exceed your budget by ${formatKes(projectedTotal - budget)}")
+            }
+            return
+        }
+        _uiState.update {
+            it.copy(items = it.items.map { item ->
+                if (item.id == itemId) item.copy(estimatedPrice = price, actualPrice = price) else item
+            })
+        }
+        // Correcting a price here should also correct it for next time — keep the catalog item
+        // (if this line came from one) in sync so future trips/budgeting see the real price.
+        target.catalogItemId?.let { catalogItemId ->
+            viewModelScope.launch { itemRepository.updateItemPrice(catalogItemId, price) }
+        }
     }
 
     private fun sortItems(order: ItemSortOrder) {

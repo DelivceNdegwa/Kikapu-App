@@ -9,6 +9,7 @@ import androidx.work.NetworkType
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
+import com.delivce.kikapu.domain.repository.ItemRepository
 import com.delivce.kikapu.domain.repository.TripRepository
 import com.google.firebase.auth.FirebaseAuth
 import dagger.assisted.Assisted
@@ -19,14 +20,16 @@ import java.util.concurrent.TimeUnit
 class SyncWorker @AssistedInject constructor(
     @Assisted context: Context,
     @Assisted params: WorkerParameters,
-    private val repository: TripRepository,
+    private val tripRepository: TripRepository,
+    private val itemRepository: ItemRepository,
     private val auth: FirebaseAuth
 ) : CoroutineWorker(context, params) {
 
     override suspend fun doWork(): Result {
         val userId = auth.currentUser?.uid ?: return Result.success()
         return try {
-            repository.syncWithFirestore(userId)
+            tripRepository.syncWithFirestore(userId)
+            itemRepository.syncWithFirestore(userId)
             Result.success()
         } catch (e: Exception) {
             Result.retry()
