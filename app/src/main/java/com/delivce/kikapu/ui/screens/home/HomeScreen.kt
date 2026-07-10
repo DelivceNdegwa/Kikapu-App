@@ -136,7 +136,7 @@ fun HomeScreen(
 
         if (recentTrips.isEmpty()) {
             item {
-                EmptyStateIllustration(caption = "[ NO TRIPS YET — PLAN YOUR FIRST ONE ]")
+                EmptyStateIllustration(caption = "NO TRIPS YET. PLAN YOUR FIRST ONE")
             }
         } else {
             items(recentTrips, key = { it.id }) { trip ->

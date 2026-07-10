@@ -157,7 +157,7 @@ fun TripPlanScreen(
                 }
                 uiState.filteredTrips.isEmpty() -> {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        EmptyStateIllustration(caption = "[ NO TRIPS FOUND ]")
+                        EmptyStateIllustration(caption = "No trips found")
                     }
                 }
                 else -> {

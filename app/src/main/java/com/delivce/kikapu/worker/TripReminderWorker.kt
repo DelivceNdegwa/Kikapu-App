@@ -70,7 +70,7 @@ class TripReminderWorker @AssistedInject constructor(
             setTextViewText(R.id.notification_title, "TRIP REMINDER")
             setTextViewText(
                 R.id.notification_message,
-                "$userName, ready to shop for \"$tripName\"?"
+                "Hi $userName, ready to shop?"
             )
             setOnClickPendingIntent(R.id.btn_yes, yesPendingIntent)
             setOnClickPendingIntent(R.id.btn_no, noPendingIntent)

@@ -97,7 +97,7 @@ fun TripDetailScreen(
                         color = RetroTheme.TextColor
                     )
                     Text(
-                        text = "[ ${trip?.status?.name ?: ""} ]",
+                        text = trip?.status?.name ?: "",
                         style = MaterialTheme.typography.labelSmall,
                         color = AppColors.Coral
                     )
@@ -186,7 +186,7 @@ private fun UpcomingTripContent(
         ) {
             item {
                 Text(
-                    text = "[ ${items.size} ITEMS PLANNED ]",
+                    text = "${items.size} items planned",
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Bold,
                     color = RetroTheme.TextColor.copy(alpha = 0.6f)
@@ -277,7 +277,7 @@ private fun ActiveTripContent(
         ) {
             item {
                 Text(
-                    text = "[ $checkedCount/${uiState.items.size} CHECKED ]",
+                    text = "$checkedCount/${uiState.items.size} checked",
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Bold,
                     color = RetroTheme.TextColor.copy(alpha = 0.6f)
@@ -461,7 +461,7 @@ private fun CompletedTripContent(trip: com.delivce.kikapu.domain.model.Trip, ite
         }
         item {
             Text(
-                text = "[ WHAT YOU BOUGHT ]",
+                text = "What you bought",
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.Bold,
                 color = RetroTheme.TextColor.copy(alpha = 0.6f)

@@ -99,7 +99,7 @@ fun ProgressScreen(
                 Column(modifier = Modifier.fillMaxSize()) {
                     Header()
                     Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
-                        EmptyStateIllustration(caption = "[ COMPLETE YOUR FIRST TRIP TO START A STREAK ]")
+                        EmptyStateIllustration(caption = "Complete your first trip to start a streak")
                     }
                 }
             }

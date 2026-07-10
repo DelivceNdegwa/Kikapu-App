@@ -86,7 +86,7 @@ fun ItemsScreen(
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "[ ${uiState.items.size} IN CATALOG ]",
+                    text = "${uiState.items.size} in catalog",
                     style = MaterialTheme.typography.labelMedium,
                     color = RetroTheme.TextColor.copy(alpha = 0.5f)
                 )
@@ -113,12 +113,12 @@ fun ItemsScreen(
                 }
                 uiState.items.isEmpty() -> {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        EmptyStateIllustration(caption = "[ NO ITEMS YET — ADD WHAT YOU RESTOCK OFTEN ]")
+                        EmptyStateIllustration(caption = "No items yet, add what you restock often")
                     }
                 }
                 filteredItems.isEmpty() -> {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        EmptyStateIllustration(caption = "[ NO ITEMS MATCH YOUR SEARCH ]")
+                        EmptyStateIllustration(caption = "No items match your search")
                     }
                 }
                 else -> {

@@ -406,7 +406,7 @@ private fun ConfirmStep(uiState: CompleteTripUiState, modifier: Modifier = Modif
         }
         item {
             Text(
-                text = "[ BOUGHT (${bought.size}) ]",
+                text = "Bought (${bought.size})",
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.Bold,
                 color = RetroTheme.TextColor.copy(alpha = 0.6f)
@@ -428,7 +428,7 @@ private fun ConfirmStep(uiState: CompleteTripUiState, modifier: Modifier = Modif
         if (changed.isNotEmpty()) {
             item {
                 Text(
-                    text = "[ PRICE CHANGES ]",
+                    text = "Price Changes",
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Bold,
                     color = RetroTheme.TextColor.copy(alpha = 0.6f)
