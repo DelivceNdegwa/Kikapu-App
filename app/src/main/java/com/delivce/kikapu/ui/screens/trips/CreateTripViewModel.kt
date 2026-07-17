@@ -255,8 +255,16 @@ class CreateTripViewModel @Inject constructor(
                     state.items.forEach { item ->
                         repository.addItem(item.copy(tripId = tripId))
                     }
+//                    state.reminderTime?.let { reminderTime ->
+//                        val userName = auth.currentUser?.displayName ?: "there"
+//                        TripReminderWorker.schedule(context, tripId, trip.name, userName, reminderTime)
+//                    }
                     state.reminderTime?.let { reminderTime ->
-                        val userName = auth.currentUser?.displayName ?: "there"
+                        val userName = auth.currentUser?.displayName
+                            ?.trim()
+                            ?.split(Regex("\\s+"))
+                            ?.firstOrNull()
+                            ?: "there"
                         TripReminderWorker.schedule(context, tripId, trip.name, userName, reminderTime)
                     }
                     _uiState.update { it.copy(isLoading = false) }
